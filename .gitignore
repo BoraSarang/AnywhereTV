@@ -1,0 +1,40 @@
+# Flutter
+anywhere_tv/.dart_tool/
+anywhere_tv/.packages
+anywhere_tv/.pub/
+anywhere_tv/build/
+anywhere_tv/.flutter-plugins
+anywhere_tv/.flutter-plugins-dependencies
+# pubspec.lock should be committed for apps
+# anywhere_tv/pubspec.lock
+
+# Android
+anywhere_tv/android/.gradle/
+anywhere_tv/android/build/
+anywhere_tv/android/local.properties
+anywhere_tv/android/key.properties
+anywhere_tv/android/app/upload-keystore.jks
+anywhere_tv/android/app/upload-keystore.jks.old
+
+# macOS
+anywhere_tv/macos/Pods/
+anywhere_tv/macos/.idea/
+anywhere_tv/macos/*.xcworkspace
+anywhere_tv/macos/Podfile.lock
+
+# iOS
+anywhere_tv/ios/Pods/
+anywhere_tv/ios/.idea/
+anywhere_tv/ios/*.xcworkspace
+anywhere_tv/ios/Podfile.lock
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Build outputs
+dist/
+
+# SDK
+Android SDK
