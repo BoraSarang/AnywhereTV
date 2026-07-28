@@ -1,0 +1,89 @@
+{
+  "version": "2026-07-28",
+  "channels": [
+    {
+      "id": "kbs1",
+      "name": "KBS1",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/KBS_1TV_Logo.svg/512px-KBS_1TV_Logo.svg.png",
+      "streamUrl": null,
+      "sourceType": "hls",
+      "category": "지상파",
+      "isDefaultFavorite": true,
+      "resolver": "kbs",
+      "resolverData": { "channelCode": "11" }
+    },
+    {
+      "id": "kbs2",
+      "name": "KBS2",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/KBS_2TV_Logo.svg/512px-KBS_2TV_Logo.svg.png",
+      "streamUrl": null,
+      "sourceType": "hls",
+      "category": "지상파",
+      "isDefaultFavorite": true,
+      "resolver": "kbs",
+      "resolverData": { "channelCode": "12" }
+    },
+    {
+      "id": "mbc",
+      "name": "MBC",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/MBC_Logo_%282018%29.svg/512px-MBC_Logo_%282018%29.svg.png",
+      "streamUrl": null,
+      "sourceType": "hls",
+      "category": "지상파",
+      "isDefaultFavorite": true,
+      "resolver": "mbc",
+      "resolverData": {}
+    },
+    {
+      "id": "sbs",
+      "name": "SBS",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/SBS_Korea_Logo_%28Word_Only%29.svg/512px-SBS_Korea_Logo_%28Word_Only%29.svg.png",
+      "streamUrl": null,
+      "sourceType": "hls",
+      "category": "지상파",
+      "isDefaultFavorite": true,
+      "resolver": "sbs",
+      "resolverData": { "channelId": "S05" }
+    },
+    {
+      "id": "ebs1",
+      "name": "EBS1",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/EBS_1TV_Logo.svg/512px-EBS_1TV_Logo.svg.png",
+      "streamUrl": "https://ebsonair.ebs.co.kr/ebs1familypc/familypc1m/playlist.m3u8",
+      "sourceType": "hls",
+      "category": "지상파",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "ebs2",
+      "name": "EBS2",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/EBS_2TV_Logo.svg/512px-EBS_2TV_Logo.svg.png",
+      "streamUrl": "https://ebsonair.ebs.co.kr/ebs2familypc/familypc1m/playlist.m3u8",
+      "sourceType": "hls",
+      "category": "지상파",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "ytn",
+      "name": "YTN",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/YTN_logo.svg/512px-YTN_logo.svg.png",
+      "streamUrl": null,
+      "youtubeChannelId": "UChlgI3UHCOnwUGzWzbJ3H5w",
+      "youtubeVideoId": null,
+      "sourceType": "youtube_live",
+      "category": "뉴스",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "yonhap",
+      "name": "연합뉴스TV",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Yonhap_News_TV_logo.svg/512px-Yonhap_News_TV_logo.svg.png",
+      "streamUrl": null,
+      "youtubeChannelId": "UCTHCOPwqNfZ0uiKOvFyhGwg",
+      "youtubeVideoId": "6QZ_qc75ihU",
+      "sourceType": "youtube_live",
+      "category": "뉴스",
+      "isDefaultFavorite": false
+    }
+  ]
+}

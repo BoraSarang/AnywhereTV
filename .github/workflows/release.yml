@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0)'
+        required: true
+        type: string
+      tag:
+        description: 'Git tag (e.g. v1.0.0)'
+        required: true
+        type: string
+      changelog:
+        description: 'Release notes'
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: anywhere_tv
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: 'stable'
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: anywhere_tv/build/app/outputs/flutter-apk/app-release.apk
+          compression-level: 0
+
+  build-macos:
+    name: Build macOS App
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: 'stable'
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Zip .app
+        run: ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/AnywhereTV.app build/macos/Build/Products/Release/AnywhereTV.zip
+
+      - name: Upload macOS ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: anywheretv-macos
+          path: anywhere_tv/build/macos/Build/Products/Release/AnywhereTV.zip
+          compression-level: 0
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-android, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-apk
+          path: release-artifacts
+
+      - name: Download macOS ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: anywheretv-macos
+          path: release-artifacts
+
+      - name: Rename APK
+        run: mv release-artifacts/app-release.apk "release-artifacts/AnywhereTV-${{ inputs.version }}.apk"
+
+      - name: Rename ZIP
+        run: mv release-artifacts/AnywhereTV.zip "release-artifacts/AnywhereTV-${{ inputs.version }}-macos.zip"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: AnywhereTV v${{ inputs.version }}
+          body: ${{ inputs.changelog }}
+          files: release-artifacts/*
+          fail_on_unmatched_files: true
