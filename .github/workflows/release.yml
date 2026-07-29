@@ -59,7 +59,11 @@ jobs:
           channel: 'stable'
 
       - name: Enable macOS desktop
-        run: flutter config --enable-macos-desktop
+        run: |
+          flutter config --enable-macos-desktop
+          ls -la
+          ls -la macos/ || echo "macos/ NOT FOUND"
+          ls -la ../ || echo "parent not accessible"
 
       - name: Build macOS
         run: flutter build macos --release
