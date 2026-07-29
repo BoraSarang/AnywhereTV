@@ -40,9 +40,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _loading = false;
   String _preferredResolution = 'auto';
 
-  static int _categoryOrder(String cat) {
-    const order = ['지상파', '뉴스', '예능', '케이블', '음악', '교양', '드라마'];
-    return order.indexOf(cat);
+  List<String> get _categoryOrder {
+    final order = <String>[];
+    for (final ch in widget.channelRepo.channels) {
+      if (!order.contains(ch.category)) order.add(ch.category);
+    }
+    return order;
+  }
+
+  void _sortByCategoryOrder() {
+    final order = _categoryOrder;
+    _favoriteChannels.sort((a, b) {
+      final ai = order.indexOf(a.category);
+      final bi = order.indexOf(b.category);
+      return (ai == -1 ? 999 : ai).compareTo(bi == -1 ? 999 : bi);
+    });
   }
 
   int get _targetHeight {
@@ -106,7 +118,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     } else {
       _favoriteChannels = widget.channelRepo.defaultFavorites.toList();
     }
-    _favoriteChannels.sort((a, b) => _categoryOrder(a.category).compareTo(_categoryOrder(b.category)));
+    _sortByCategoryOrder();
     if (_favoriteChannels.isEmpty) {
       _favoriteChannels = List.from(all);
     }
@@ -115,6 +127,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final idx = _favoriteChannels.indexWhere((c) => c.id == lastId);
       if (idx >= 0) _currentIndex = idx;
     }
+    if (_currentIndex >= _favoriteChannels.length) _currentIndex = 0;
     _log.info('Player', 'Favorites: ${_favoriteChannels.length} channels');
   }
 
@@ -210,8 +223,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
     widget.userStateService.setLastChannel(_favoriteChannels[_currentIndex].id);
   }
 
-  void _nextChannel() => _switchChannel(_currentIndex + 1);
-  void _prevChannel() => _switchChannel(_currentIndex - 1);
+  void _nextChannel() {
+    _log.info('Player', 'nextChannel: current=$_currentIndex total=${_favoriteChannels.length}');
+    _switchChannel((_currentIndex + 1) % _favoriteChannels.length);
+  }
+  void _prevChannel() {
+    _log.info('Player', 'prevChannel: current=$_currentIndex total=${_favoriteChannels.length}');
+    _switchChannel((_currentIndex - 1 + _favoriteChannels.length) % _favoriteChannels.length);
+  }
 
   void _resetOverlayTimer() {
     _overlayTimer?.cancel();
@@ -269,8 +288,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
       int idx = _favoriteChannels.indexWhere((c) => c.id == id);
       if (idx < 0) {
         final channel = widget.channelRepo.channels.firstWhere((c) => c.id == id);
-        setState(() => _favoriteChannels.add(channel));
-        idx = _favoriteChannels.length - 1;
+        setState(() {
+          _favoriteChannels.add(channel);
+          _sortByCategoryOrder();
+          idx = _favoriteChannels.indexWhere((c) => c.id == id);
+        });
       }
       _switchChannel(idx);
     }
@@ -281,8 +303,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final result = await Navigator.of(context).pushNamed<String>(
       '/settings',
     );
-    if (result != null && result != prevRes && mounted) {
-      setState(() => _preferredResolution = result!);
+    if (!mounted) return;
+    _initFavorites();
+    if (_currentIndex >= _favoriteChannels.length) _currentIndex = 0;
+    setState(() {});
+    if (result != null && result != prevRes) {
+      _preferredResolution = result;
       widget.userStateService.setResolution(_preferredResolution);
       _log.system('Player', 'Resolution changed: $prevRes → $_preferredResolution');
       _initPlayerForCurrentChannel();
@@ -308,31 +334,42 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (_loadError != null) {
       return Stack(
         children: [
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.white38, size: 48),
-                const SizedBox(height: 16),
-                Text(_loadError!, style: const TextStyle(color: Colors.white54, fontSize: 16)),
-                const SizedBox(height: 24),
-                TextButton.icon(
-                  onPressed: () => _initPlayerForCurrentChannel(),
-                  icon: const Icon(Icons.refresh, color: Colors.white70),
-                  label: const Text('재시도', style: TextStyle(color: Colors.white70)),
-                ),
-              ],
+          Positioned.fill(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.white38, size: 48),
+                  const SizedBox(height: 16),
+                  Text(_loadError!, style: const TextStyle(color: Colors.white54, fontSize: 16)),
+                  const SizedBox(height: 24),
+                  TextButton.icon(
+                    onPressed: () => _initPlayerForCurrentChannel(),
+                    icon: const Icon(Icons.refresh, color: Colors.white70),
+                    label: const Text('재시도', style: TextStyle(color: Colors.white70)),
+                  ),
+                ],
+              ),
             ),
           ),
-          if (_favoriteChannels.length > 1) _navButtons(),
+          _topBar(),
+          if (_favoriteChannels.length > 1) ...[
+            _navButtonLeft(),
+            _navButtonRight(),
+          ],
         ],
       );
     }
     if (_hlsAdapter == null || _loading) {
       return Stack(
         children: [
-          const Center(child: CircularProgressIndicator(color: Colors.white)),
-          if (_showOverlay && _favoriteChannels.length > 1) _navButtons(),
+          const Positioned.fill(
+            child: Center(child: CircularProgressIndicator(color: Colors.white)),
+          ),
+          if (_showOverlay && _favoriteChannels.length > 1) ...[
+            _navButtonLeft(),
+            _navButtonRight(),
+          ],
         ],
       );
     }
@@ -348,42 +385,89 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
         if (_showOverlay) ...[
           _overlayContent(),
-          if (_favoriteChannels.length > 1) _navButtons(),
+          if (_favoriteChannels.length > 1) ...[
+            _navButtonLeft(),
+            _navButtonRight(),
+          ],
         ],
       ],
     );
   }
 
-  Widget _navButtons() {
-    return Stack(
-      children: [
-        Positioned(
-          left: 8, top: 0, bottom: 0,
-          child: Center(
-            child: GestureDetector(
-              onTap: _prevChannel,
-              child: Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-                child: const Icon(Icons.skip_previous, color: Colors.white, size: 40),
-              ),
-            ),
+  Widget _topBar() {
+    final channel = currentChannel;
+    return Positioned(
+      top: 0, left: 0, right: 0,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xBB000000), Colors.transparent],
           ),
         ),
-        Positioned(
-          right: 8, top: 0, bottom: 0,
-          child: Center(
-            child: GestureDetector(
-              onTap: _nextChannel,
+        child: Row(
+          children: [
+            if (channel != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
+                child: Text(channel.category, style: const TextStyle(color: Colors.white70, fontSize: 13, decoration: TextDecoration.none)),
+              ),
+            const Spacer(),
+            GestureDetector(
+              onTap: _openChannelList,
               child: Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-                child: const Icon(Icons.skip_next, color: Colors.white, size: 40),
+                width: 44, height: 44,
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.list, color: Colors.white, size: 24),
               ),
             ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _openSettings,
+              child: Container(
+                width: 44, height: 44,
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.settings, color: Colors.white, size: 24),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navButtonLeft() {
+    return Positioned(
+      left: 8, top: 0, bottom: 0,
+      child: Center(
+        child: GestureDetector(
+          onTap: _prevChannel,
+          child: Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.skip_previous, color: Colors.white, size: 40),
           ),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _navButtonRight() {
+    return Positioned(
+      right: 8, top: 0, bottom: 0,
+      child: Center(
+        child: GestureDetector(
+          onTap: _nextChannel,
+          child: Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.skip_next, color: Colors.white, size: 40),
+          ),
+        ),
+      ),
     );
   }
 
@@ -396,47 +480,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         color: Colors.transparent,
         child: Stack(
           children: [
-            Positioned(
-              top: 0, left: 0, right: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xBB000000), Colors.transparent],
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    if (channel != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
-                        child: Text(channel.category, style: const TextStyle(color: Colors.white70, fontSize: 13, decoration: TextDecoration.none)),
-                      ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: _openChannelList,
-                      child: Container(
-                        width: 44, height: 44,
-                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                        child: const Icon(Icons.list, color: Colors.white, size: 24),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _openSettings,
-                      child: Container(
-                        width: 44, height: 44,
-                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                        child: const Icon(Icons.settings, color: Colors.white, size: 24),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _topBar(),
             if (channel != null)
               Positioned(
                 left: 0, right: 0, top: 0, bottom: 0,

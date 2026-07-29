@@ -3,8 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/channel.dart';
 import '../repositories/channel_repository.dart';
 
-
-class ChannelListScreen extends StatelessWidget {
+class ChannelListScreen extends StatefulWidget {
   final ChannelRepository channelRepo;
   final String? currentChannelId;
 
@@ -14,11 +13,80 @@ class ChannelListScreen extends StatelessWidget {
     this.currentChannelId,
   });
 
-  static const _categoryOrder = ['지상파', '뉴스', '예능', '케이블', '음악', '교양', '드라마'];
+  @override
+  State<ChannelListScreen> createState() => _ChannelListScreenState();
+}
+
+class _ChannelListScreenState extends State<ChannelListScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _tileKeys = {};
+
+  List<String> get _categoryOrder {
+    final order = <String>[];
+    for (final ch in widget.channelRepo.channels) {
+      if (!order.contains(ch.category)) order.add(ch.category);
+    }
+    return order;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToCurrent() {
+    if (widget.currentChannelId == null) return;
+    final id = widget.currentChannelId!;
+    final channels = widget.channelRepo.channels;
+    final grouped = <String, List<Channel>>{};
+    for (final c in channels) {
+      grouped.putIfAbsent(c.category, () => []).add(c);
+    }
+    final sortedCategories = grouped.entries.toList()
+      ..sort((a, b) {
+        final ai = _categoryOrder.indexOf(a.key);
+        final bi = _categoryOrder.indexOf(b.key);
+        return (ai == -1 ? 99 : ai).compareTo(bi == -1 ? 99 : bi);
+      });
+
+    double offset = 0;
+    const double headerHeight = 50;
+    const double tileHeight = 76;
+
+    outer:
+    for (final entry in sortedCategories) {
+      offset += headerHeight;
+      for (final ch in entry.value) {
+        if (ch.id == id) break outer;
+        offset += tileHeight;
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (!_scrollController.hasClients) return;
+        final target = (offset - 100).clamp(0.0, _scrollController.position.maxScrollExtent);
+        if (target > 0) {
+          _scrollController.animateTo(
+            target,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final channels = channelRepo.channels;
+    final channels = widget.channelRepo.channels;
     final grouped = <String, List<Channel>>{};
     for (final c in channels) {
       grouped.putIfAbsent(c.category, () => []).add(c);
@@ -41,6 +109,7 @@ class ChannelListScreen extends StatelessWidget {
         ),
       ),
       body: ListView(
+        controller: _scrollController,
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           for (final entry in sortedCategories) ...[
@@ -53,8 +122,9 @@ class ChannelListScreen extends StatelessWidget {
             ),
             for (final channel in entry.value)
               _ChannelTile(
+                key: _tileKeys.putIfAbsent(channel.id, () => GlobalKey()),
                 channel: channel,
-                isCurrent: channel.id == currentChannelId,
+                isCurrent: channel.id == widget.currentChannelId,
                 onTap: () => Navigator.of(context).pop({'channelId': channel.id}),
               ),
           ],
@@ -70,6 +140,7 @@ class _ChannelTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ChannelTile({
+    super.key,
     required this.channel,
     required this.isCurrent,
     required this.onTap,
