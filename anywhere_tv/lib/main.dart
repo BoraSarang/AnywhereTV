@@ -62,6 +62,9 @@ class _AnywhereTvAppState extends State<AnywhereTvApp> {
       await _userStateService.init();
       log.system('App', 'UserStateService done');
       await _channelRepo.init();
+      _channelRepo.onChannelsUpdated = () {
+        if (mounted) setState(() {});
+      };
       log.system('App', 'ChannelRepo done');
     } catch (e) {
       log.error('App', 'Init error: $e');

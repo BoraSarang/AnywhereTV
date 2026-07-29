@@ -1,15 +1,141 @@
 {
-  "version": 1,
-  "updatedAt": "2026-07-28",
+  "version": 5,
+  "updatedAt": "2026-07-29",
   "remoteUrl": "https://gist.githubusercontent.com/BoraSarang/949188737a97773ad5313d9cbd159bff/raw/channels.json",
   "channels": [
     {
-      "id": "yonhap",
-      "name": "연합뉴스TV",
-      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Yonhap_News_TV_logo.png/500px-Yonhap_News_TV_logo.png",
-      "youtubeChannelId": "UCTHCOPwqNfZ0uiKOvFyhGwg",
-      "youtubeVideoId": "6QZ_qc75ihU",
-      "category": "뉴스",
+      "id": "bbackd",
+      "name": "SBS 옛날 드라마",
+      "logoUrl": "",
+      "youtubeHandle": "@BBACKD",
+      "category": "드라마",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "kbs_dramaclassic",
+      "name": "KBS 사극 태조왕건, 대조영, 불멸의 이순신, 무인시대, 용의 눈물",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/KBS_DRAMA.svg/500px-KBS_DRAMA.svg.png",
+      "youtubeHandle": "@kbsdramaclassic",
+      "youtubeVideoId": "1bROU5AqM8w",
+      "category": "드라마",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "kbs_drama",
+      "name": "KBS 드라마 🔥24시간",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/KBS_DRAMA.svg/500px-KBS_DRAMA.svg.png",
+      "youtubeHandle": "@KBSdrama",
+      "category": "드라마",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "diggle_6",
+      "name": "디글 - 악마판사",
+      "logoUrl": "https://yt3.ggpht.com/14-LcU9z8YjX-JKFBhqOK0H2SzJupGEJxtZwHmLXtbcpQQ1-YehNxiWim8SoLCDFEv6j2I-w=s88-c-k-c0x00ffffff-no-rj",
+      "youtubeVideoId": "8s2pWol8p7M",
+      "category": "드라마",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "diggle_1",
+      "name": "디글 - 조승우X배두나의 내부 비밀 추적극 〈비밀의 숲〉",
+      "logoUrl": "https://yt3.googleusercontent.com/m4J2Rpz6CwcqAKtqjOuvTjCXBDbORywU1TIQlo4j49LPMClAbt_ugICQ4r2ONwWxWUv39PtR=s160-c-k-c0x00ffffff-no-rj",
+      "youtubeVideoId": "5XPwjwz3ZLw",
+      "category": "드라마",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "diggle_2",
+      "name": "디글 - 충격 실화 〈알쓸범잡〉",
+      "logoUrl": "https://yt3.googleusercontent.com/m4J2Rpz6CwcqAKtqjOuvTjCXBDbORywU1TIQlo4j49LPMClAbt_ugICQ4r2ONwWxWUv39PtR=s160-c-k-c0x00ffffff-no-rj",
+      "youtubeVideoId": "1W8MppvnNE8",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "diggle_3",
+      "name": "디글 - 나가야 산다👊 탈 지구급 어드벤처 〈대탈출〉",
+      "logoUrl": "https://yt3.googleusercontent.com/m4J2Rpz6CwcqAKtqjOuvTjCXBDbORywU1TIQlo4j49LPMClAbt_ugICQ4r2ONwWxWUv39PtR=s160-c-k-c0x00ffffff-no-rj",
+      "youtubeVideoId": "yNc5W-Bjpcw",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "diggle_4",
+      "name": "디글 - 푸른거탑 + 황금거탑",
+      "logoUrl": "https://yt3.ggpht.com/14-LcU9z8YjX-JKFBhqOK0H2SzJupGEJxtZwHmLXtbcpQQ1-YehNxiWim8SoLCDFEv6j2I-w=s88-c-k-c0x00ffffff-no-rj",
+      "youtubeVideoId": "H3uur6g_9CA",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "diggle_5",
+      "name": "디글 - 렛츠고 시간탐험대",
+      "logoUrl": "https://yt3.ggpht.com/14-LcU9z8YjX-JKFBhqOK0H2SzJupGEJxtZwHmLXtbcpQQ1-YehNxiWim8SoLCDFEv6j2I-w=s88-c-k-c0x00ffffff-no-rj",
+      "youtubeVideoId": "vuJoalX0ke4",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "hello1st",
+      "name": "하루종일 - 어서와 한국은 처음이지",
+      "logoUrl": "",
+      "youtubeHandle": "@hello1stkorea",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "runningman",
+      "name": "하루종일 - 런닝맨",
+      "logoUrl": "",
+      "youtubeHandle": "@SBSRunningMan",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "1night2days",
+      "name": "하루종일 - 1박 2일",
+      "logoUrl": "",
+      "youtubeHandle": "@kbsentertain_kkalkkal",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "jtbcvoyage",
+      "name": "하루종일 - JTBC 크라임씬",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/JTBC_logo.svg/500px-JTBC_logo.svg.png",
+      "youtubeHandle": "@JTBCvoyage",
+      "category": "예능",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "ytn_gyoyang",
+      "name": "YTN 교양",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/YTN_2014_logo.svg/500px-YTN_2014_logo.svg.png",
+      "youtubeHandle": "@교양있게2025",
+      "category": "교양",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
+      "id": "kbs_gyoyang",
+      "name": "KBS 교양",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/KBS_1_logo.svg/500px-KBS_1_logo.svg.png",
+      "youtubeHandle": "kbslife",
+      "category": "교양",
       "sourceType": "youtube_live",
       "isDefaultFavorite": true
     },
@@ -53,6 +179,16 @@
       "resolverData": {"channelId": "S01"}
     },
     {
+      "id": "yonhap",
+      "name": "연합뉴스TV",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Yonhap_News_TV_logo.png/500px-Yonhap_News_TV_logo.png",
+      "youtubeChannelId": "UCTHCOPwqNfZ0uiKOvFyhGwg",
+      "youtubeVideoId": "6QZ_qc75ihU",
+      "category": "뉴스",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": true
+    },
+    {
       "id": "ytn",
       "name": "YTN",
       "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/YTN_2014_logo.svg/500px-YTN_2014_logo.svg.png",
@@ -64,49 +200,13 @@
       "isDefaultFavorite": true
     },
     {
-      "id": "hello1st",
-      "name": "어서와 한국은 처음이지",
-      "logoUrl": "",
-      "youtubeHandle": "@hello1stkorea",
-      "category": "예능",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "runningman",
-      "name": "런닝맨",
-      "logoUrl": "",
-      "youtubeHandle": "@SBSRunningMan",
-      "category": "예능",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "1night2days",
-      "name": "1박 2일",
-      "logoUrl": "",
-      "youtubeHandle": "@kbsentertain_kkalkkal",
-      "category": "예능",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "jtbcvoyage",
-      "name": "JTBC Voyage",
-      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/JTBC_logo.svg/500px-JTBC_logo.svg.png",
-      "youtubeHandle": "@JTBCvoyage",
-      "category": "예능",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
       "id": "kbs_world",
       "name": "KBS WORLD TV",
       "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/KBS_World.svg/500px-KBS_World.svg.png",
       "youtubeHandle": "@KBSWorldTV",
       "category": "케이블",
       "sourceType": "youtube_live",
-      "isDefaultFavorite": true
+      "isDefaultFavorite": false
     },
     {
       "id": "arirang",
@@ -115,7 +215,7 @@
       "youtubeHandle": "@KOREAarirangTV",
       "category": "케이블",
       "sourceType": "youtube_live",
-      "isDefaultFavorite": true
+      "isDefaultFavorite": false
     },
     {
       "id": "jtbc_news",
@@ -160,52 +260,7 @@
       "youtubeHandle": "allthekpop",
       "category": "음악",
       "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "ytn_gyoyang",
-      "name": "YTN 교양",
-      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/YTN_2014_logo.svg/500px-YTN_2014_logo.svg.png",
-      "youtubeHandle": "@교양있게2025",
-      "category": "교양",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "kbs_gyoyang",
-      "name": "KBS 교양",
-      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/KBS_1_logo.svg/500px-KBS_1_logo.svg.png",
-      "youtubeHandle": "kbslife",
-      "category": "교양",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "bbackd",
-      "name": "빽드",
-      "logoUrl": "",
-      "youtubeHandle": "@BBACKD",
-      "category": "드라마",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "mjang_gig",
-      "name": "엠장기획",
-      "logoUrl": "",
-      "youtubeHandle": "@엠장기획",
-      "category": "드라마",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
-    },
-    {
-      "id": "kbs_drama",
-      "name": "KBS Drama",
-      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/KBS_DRAMA.svg/500px-KBS_DRAMA.svg.png",
-      "youtubeHandle": "@KBSdrama",
-      "category": "드라마",
-      "sourceType": "youtube_live",
-      "isDefaultFavorite": true
+      "isDefaultFavorite": false
     }
   ]
 }
