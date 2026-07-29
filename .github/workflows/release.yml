@@ -90,19 +90,26 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: app-release-apk
-          path: release-artifacts
+          path: release-artifacts/apk
 
       - name: Download macOS ZIP
         uses: actions/download-artifact@v4
         with:
           name: anywheretv-macos
-          path: release-artifacts
+          path: release-artifacts/macos
+
+      - name: List artifacts
+        run: find release-artifacts -type f
 
       - name: Rename APK
-        run: mv release-artifacts/app-release.apk "release-artifacts/AnywhereTV-${{ inputs.version }}.apk"
+        run: |
+          apk=$(find release-artifacts -name "*.apk" | head -1)
+          mv "$apk" "release-artifacts/AnywhereTV-${{ inputs.version }}.apk"
 
       - name: Rename ZIP
-        run: mv release-artifacts/AnywhereTV.zip "release-artifacts/AnywhereTV-${{ inputs.version }}-macos.zip"
+        run: |
+          zip=$(find release-artifacts -name "*.zip" | head -1)
+          mv "$zip" "release-artifacts/AnywhereTV-${{ inputs.version }}-macos.zip"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
