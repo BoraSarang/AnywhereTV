@@ -58,12 +58,11 @@ jobs:
           flutter-version: '3.44.6'
           channel: 'stable'
 
-      - name: Enable macOS desktop
+      - name: Ensure macOS platform
         run: |
           flutter config --enable-macos-desktop
-          ls -la
-          ls -la macos/ || echo "macos/ NOT FOUND"
-          ls -la ../ || echo "parent not accessible"
+          flutter create --platforms=macos .
+          flutter pub get
 
       - name: Build macOS
         run: flutter build macos --release
