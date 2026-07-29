@@ -21,14 +21,13 @@ concurrency:
   group: release-${{ inputs.version }}
   cancel-in-progress: false
 
-defaults:
-  run:
-    working-directory: anywhere_tv
-
 jobs:
   build-android:
     name: Build Android APK
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: anywhere_tv
     steps:
       - uses: actions/checkout@v4
 
@@ -50,6 +49,9 @@ jobs:
   build-macos:
     name: Build macOS App
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: anywhere_tv
     steps:
       - uses: actions/checkout@v4
 
@@ -90,13 +92,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: app-release-apk
-          path: release-artifacts/apk
+          path: release-artifacts
 
       - name: Download macOS ZIP
         uses: actions/download-artifact@v4
         with:
           name: anywheretv-macos
-          path: release-artifacts/macos
+          path: release-artifacts
 
       - name: List artifacts
         run: find release-artifacts -type f
