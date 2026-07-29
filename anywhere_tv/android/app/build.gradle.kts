@@ -12,6 +12,10 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+fun propOrEnv(key: String, env: String): String? =
+    (keystoreProperties[key] as? String)?.takeIf { it.isNotEmpty() }
+        ?: System.getenv(env)?.takeIf { it.isNotEmpty() }
+
 android {
     namespace = "com.borasarang.anywheretv"
     compileSdk = flutter.compileSdkVersion
@@ -30,18 +34,28 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+    val storeFileEnv = propOrEnv("storeFile", "ANDROID_STORE_FILE")
+    val hasSigning = storeFileEnv != null
+            && propOrEnv("keyAlias", "ANDROID_KEY_ALIAS") != null
+            && propOrEnv("keyPassword", "ANDROID_KEY_PASSWORD") != null
+            && propOrEnv("storePassword", "ANDROID_STORE_PASSWORD") != null
+
+    if (hasSigning) {
+        signingConfigs {
+            create("release") {
+                keyAlias = propOrEnv("keyAlias", "ANDROID_KEY_ALIAS")!!
+                keyPassword = propOrEnv("keyPassword", "ANDROID_KEY_PASSWORD")!!
+                storeFile = rootProject.file(storeFileEnv!!)
+                storePassword = propOrEnv("storePassword", "ANDROID_STORE_PASSWORD")!!
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
