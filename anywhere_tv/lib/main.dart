@@ -5,6 +5,7 @@ import 'models/user_state.dart';
 import 'repositories/channel_repository.dart';
 import 'services/debug_logger.dart';
 import 'services/user_state_service.dart';
+import 'services/background_service.dart';
 import 'ui/debug_panel.dart';
 import 'ui/player_screen.dart';
 import 'ui/settings_screen.dart';
@@ -13,6 +14,7 @@ final ValueNotifier<bool> mediaKitReady = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await BackgroundAudioService.init();
   runApp(const AnywhereTvApp());
   await Future.delayed(Duration.zero);
   MediaKit.ensureInitialized();

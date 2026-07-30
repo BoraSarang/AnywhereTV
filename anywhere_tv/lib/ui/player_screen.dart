@@ -9,6 +9,7 @@ import '../repositories/channel_repository.dart';
 import '../services/debug_logger.dart';
 import '../services/user_state_service.dart';
 import '../models/stream_resolution_result.dart';
+import '../services/background_service.dart';
 import '../sources/hls_player_adapter.dart';
 import '../resolvers/stream_resolver.dart';
 
@@ -91,6 +92,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     HardwareKeyboard.instance.removeHandler(_handleKey);
     _overlayTimer?.cancel();
+    BackgroundAudioService.stop();
     try {
       if (_hlsAdapter != null) {
         _hlsAdapter!.stop();
@@ -114,6 +116,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       } catch (_) {}
       _hlsAdapter = null;
     }
+  }
+
+  void _updateBackgroundService() async {
+    final channel = currentChannel;
+    if (channel == null) {
+      await BackgroundAudioService.stop();
+      return;
+    }
+    await BackgroundAudioService.update(channel.name);
   }
 
   bool _handleKey(KeyEvent event) {
@@ -199,6 +210,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _hlsAdapter = await HlsPlayerAdapter.create(volume: _volume);
         await _hlsAdapter!.play(result.url);
         _log.info('Player', 'Player started');
+        _updateBackgroundService();
       } else if (_loadError == null) {
         _log.error('Player', 'No stream URL for ${channel.name}');
         _loadError = '스트림 주소를 확인할 수 없습니다';
