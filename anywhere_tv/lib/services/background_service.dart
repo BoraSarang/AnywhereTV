@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'debug_logger.dart';
 
@@ -6,7 +8,10 @@ class BackgroundAudioService {
   static bool _initialized = false;
   static bool _running = false;
 
+  static bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
   static Future<void> init() async {
+    if (!_supported) return;
     if (_initialized) return;
     _initialized = true;
 
@@ -55,6 +60,7 @@ class BackgroundAudioService {
   }
 
   static Future<void> start() async {
+    if (!_supported) return;
     _running = true;
     final service = FlutterBackgroundService();
     if (!await service.isRunning()) {
@@ -64,12 +70,13 @@ class BackgroundAudioService {
   }
 
   static Future<void> update(String channelName) async {
-    if (!_running) return;
+    if (!_supported || !_running) return;
     final service = FlutterBackgroundService();
     service.invoke('update', {'channel': channelName});
   }
 
   static Future<void> stop() async {
+    if (!_supported) return;
     _running = false;
     final service = FlutterBackgroundService();
     service.invoke('stop');
