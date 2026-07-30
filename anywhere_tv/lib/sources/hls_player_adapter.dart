@@ -17,6 +17,7 @@ class HlsPlayerAdapter {
   final VideoController controller;
   final DebugLogger _log = DebugLogger.instance;
   double _volume = 100.0;
+  _MpvSetPropDart? _mpvSetProp;
 
   HlsPlayerAdapter._({required this.player, required this.controller, required double volume})
       : _volume = volume;
@@ -32,31 +33,53 @@ class HlsPlayerAdapter {
     return HlsPlayerAdapter._(player: player, controller: controller, volume: volume * 100.0);
   }
 
+  void _initMpvApi() {
+    if (_mpvSetProp != null) return;
+    try {
+      final lib = DynamicLibrary.open('libmpv.so');
+      _mpvSetProp = lib.lookupFunction<_MpvSetPropNative, _MpvSetPropDart>('mpv_set_property_string');
+    } catch (e) {
+      _log.warn('HLS', 'mpv API init failed: $e');
+    }
+  }
+
+  Future<void> _mpvSet(String name, String value) async {
+    final fn = _mpvSetProp;
+    if (fn == null) return;
+    try {
+      final handle = await player.handle;
+      final ctx = Pointer.fromAddress(handle);
+      final n = name.toNativeUtf8();
+      final v = value.toNativeUtf8();
+      fn(ctx, n, v);
+      calloc.free(n);
+      calloc.free(v);
+    } catch (e) {
+      _log.warn('HLS', 'mpv set $name=$value failed: $e');
+    }
+  }
+
   Future<void> play(String url) async {
     _log.info('HLS', 'play: $url');
+    _initMpvApi();
     await player.open(Media(url));
     await player.play();
     await _applyVolume();
-    _disableMpvSubtitles();
+    await _disableSubtitles();
     _log.info('HLS', 'play done, volume=$_volume');
   }
 
-  void _disableMpvSubtitles() {
-    try {
-      final lib = DynamicLibrary.open('libmpv.so');
-      final setProp = lib.lookupFunction<_MpvSetPropNative, _MpvSetPropDart>('mpv_set_property_string');
-      player.handle.then((handle) {
-        final ctx = Pointer.fromAddress(handle);
-        final name = 'sub-visibility'.toNativeUtf8();
-        final value = 'no'.toNativeUtf8();
-        setProp(ctx, name, value);
-        calloc.free(name);
-        calloc.free(value);
-        _log.info('HLS', 'mpv sub-visibility=no set');
-      });
-    } catch (e) {
-      _log.warn('HLS', 'mpv set sub-visibility failed: $e');
-    }
+  Future<void> _disableSubtitles() async {
+    // mpv has subs-fallback=yes by default in media_kit,
+    // which re-selects subtitles even when sid=no is set.
+    // Also subs-with-matching-audio=yes auto-selects subs matching audio language.
+    await Future.wait([
+      player.setSubtitleTrack(SubtitleTrack.no()).catchError((_) {}),
+      _mpvSet('subs-fallback', 'no'),
+      _mpvSet('subs-with-matching-audio', 'no'),
+      _mpvSet('sub-visibility', 'no'),
+    ]);
+    _log.info('HLS', 'subtitles disabled');
   }
 
   Future<void> pause() async { await player.pause(); }
