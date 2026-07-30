@@ -45,6 +45,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   String? _currentTitle;
   StreamSubscription? _errorSub;
   int _retryCount = 0;
+  bool _isLandscapeLocked = false;
+
+  void _toggleOrientation() {
+    setState(() { _isLandscapeLocked = !_isLandscapeLocked; });
+    if (_isLandscapeLocked) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
+  }
 
   List<String> get _categoryOrder {
     final order = <String>[];
@@ -95,6 +112,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     HardwareKeyboard.instance.removeHandler(_handleKey);
     _overlayTimer?.cancel();
     BackgroundAudioService.stop();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     try {
       if (_hlsAdapter != null) {
         _hlsAdapter!.stop();
@@ -487,6 +509,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 width: 44, height: 44,
                 decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
                 child: const Icon(Icons.list, color: Colors.white, size: 24),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _toggleOrientation,
+              child: Container(
+                width: 44, height: 44,
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: Icon(
+                  _isLandscapeLocked ? Icons.screen_lock_landscape : Icons.screen_rotation,
+                  color: Colors.white, size: 24,
+                ),
               ),
             ),
             const SizedBox(width: 8),
