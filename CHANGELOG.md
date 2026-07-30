@@ -1,5 +1,14 @@
 # 변경 이력 (CHANGELOG)
 
+## v1.2.1 (2026-07-31) — 자막 디버깅 + 안정화
+
+### fix
+- MBC HLS 자막: mpv FFI로 `sub-visibility=no` 설정 성공 확인 → burned-in 한계로 결론
+- FFI 코드 정리 및 불필요한 mpv 설정 제거
+
+### known issues
+- MBC HLS: 방송사 스트림에 자막이 영상에 박혀(burned-in) 있어 플레이어 레벨에서 제거 불가
+
 ## v1.2.0 (2026-07-30) — EPG + Background Audio + 안정화
 
 ### feat
@@ -15,9 +24,6 @@
 - macOS: `BackgroundAudioService.init()`가 Android/iOS 외 플랫폼에서 크래시 → platform 가드 추가
 - Android: "Cannot seek in this stream" mpv 경고가 무한 재접속 루프 유발 → 필터 처리
 - YouTube handle resolver: 리다이렉트 + HTML fallback 개선
-
-### known issues
-- MBC HLS: 방송사 스트림에 자막이 영상에 박혀(burned-in) 있어 플레이어 레벨에서 제거 불가
 
 ### build
 - `flutter_background_service` 의존성 추가
