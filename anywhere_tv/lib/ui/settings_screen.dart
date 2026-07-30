@@ -126,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 32),
           _sectionHeader('앱 정보'),
           _infoTile('앱 이름', '어디서나 TV'),
-          _infoTile('앱 버전', 'v1.0.0'),
+          _infoTile('앱 버전', 'v1.2.0'),
           _infoTile('제작자', 'OkStart'),
           _linkTile('문의', 'okstart@gmail.com', 'mailto:okstart@gmail.com'),
           _linkTile('후원하기', '☕ Buy Me a Coffee', 'https://buymeacoffee.com/okstart'),

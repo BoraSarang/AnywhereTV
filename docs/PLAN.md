@@ -1,46 +1,46 @@
 # 어디서나 TV — 구현 계획 (PLAN)
 
-> 버전: 1.0.0 (Phase 1)
-> 최종 업데이트: 2026-07-28
+> 버전: 1.2.0
+> 최종 업데이트: 2026-07-30
 
 ## 개요
 
-Flutter 기반 크로스플랫폼 실시간 채널 뷰어 앱. Phase 1은 8개 채널 (KBS1/2, MBC, SBS, EBS1/2, YTN, 연합뉴스TV) 지원.
+Flutter + media_kit 기반 크로스플랫폼 (Android + macOS) 한국 실시간 TV 뷰어.
+방송사 공식 스트림 + YouTube InnerTube API → HLS로 27개 채널 제공.
 
-## 완료된 단계
+## 완료
 
-- [x] **T-01**: Flutter 프로젝트 생성 및 의존성 설치
-- [x] **T-02**: Channel/UserState 모델 구현
-- [x] **T-03**: ChannelRepository + 원격 JSON 로더
-- [x] **T-04**: UserStateService (SharedPreferences)
-- [x] **T-05**: HLS 플레이어 어댑터 (media_kit)
-- [x] **T-06**: YouTube 플레이어 어댑터 (youtube_player_flutter)
-- [x] **T-07**: PlayerScreen (채널 전환, 오버레이, 스와이프)
-- [x] **T-08**: ChannelListScreen (즐겨찾기 관리)
-- [x] **T-09**: SettingsScreen (해상도 설정)
-- [x] **T-10**: main.dart (테마, 라우팅, 초기화)
-- [x] **T-11**: macOS 빌드 성공
-- [x] **T-12**: 앱 아이콘 플랫폼별 적용
+- [x] Android + macOS 빌드/배포 파이프라인
+- [x] 27개 채널 설정 (v6, Gist 원격 업데이트)
+- [x] HLS + YouTube InnerTube 리졸버 (KBS/SBS/MBC/youtube/youtube_handle)
+- [x] 즐겨찾기 + 카테고리 정렬 + 마지막 채널 복원
+- [x] 해상도 선택 (360p~1080p)
+- [x] DebugLogger + DebugOverlay 디버그 패널
+- [x] Android 서명 APK (CI + 로컬)
+- [x] macOS 싱글 인스턴스 가드
+- [x] INTERNET 퍼미션 (릴리즈 빌드)
+- [x] 앱 생명주기 처리 (백그라운드 → 포그라운드 복원)
+- [x] YouTube videoId 우선 처리 (handle 중복 문제 해결)
 
-## 남은 단계
+## v1.2.0 진행중
 
-- [ ] **T-13**: 스트림 URL 리졸버 구현 (KBS, SBS, MBC)
-- [ ] **T-14**: channels.json 호스팅 및 적용
-- [ ] **T-15**: Android 빌드 환경 구성 및 검증
-- [ ] **T-16**: iOS 빌드 환경 구성 및 검증
-- [ ] **T-17**: 실제 채널 스트림 URL 검증 및 channels.json 업데이트
+자세한 계획: `docs/ROADMAP.md`
 
-## 테스트 계획
+- [ ] EPG (전자 프로그램 가이드) — 현재 방영중 표시
+- [ ] 백그라운드 재생 (Android Foreground Service)
+- [ ] 자동 재연결 (스트림 끊김 시 retry)
+- [ ] 채널 검색
 
-- [ ] **TC-01**: macOS 앱 실행 및 EBS1/EBS2 정상 재생 확인
-- [ ] **TC-02**: YTN/연합뉴스TV 유튜브 라이브 재생 확인
-- [ ] **TC-03**: 좌우 스와이프 채널 전환 동작 확인
-- [ ] **TC-04**: 즐겨찾기 추가/제거 동작 확인
-- [ ] **TC-05**: 마지막 시청 채널 복원 확인
-- [ ] **TC-06**: 해상도 설정 저장/복원 확인
-- [ ] **TC-07**: 원격 JSON 채널 목록 갱신 확인
+## 빌드 명령어
 
-## 롤백 계획
+```bash
+./build_and_run.sh release android   # Android APK
+./build_and_run.sh release macos     # macOS .app
+./build_and_run.sh debug android     # 디버그 APK
+```
 
-- 각 단계 완료 시 `git commit`으로 스냅샷
-- 문제 발생 시 이전 커밋으로 `git revert`
+## 테스트 방법
+
+1. Android: `./build_and_run.sh release android` → `adb install -r -d dist/*.apk`
+2. macOS: `build_and_run.sh release macos` → 자동 실행
+3. 각 채널 전환, 해상도 변경, 앱 재시작 후 마지막 채널 복원 확인
