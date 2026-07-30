@@ -20,6 +20,8 @@ class ChannelListScreen extends StatefulWidget {
 class _ChannelListScreenState extends State<ChannelListScreen> {
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _tileKeys = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   List<String> get _categoryOrder {
     final order = <String>[];
@@ -38,6 +40,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -86,9 +89,14 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final channels = widget.channelRepo.channels;
+    final allChannels = widget.channelRepo.channels;
+    final query = _searchQuery.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? allChannels
+        : allChannels.where((c) => c.name.toLowerCase().contains(query)).toList();
+
     final grouped = <String, List<Channel>>{};
-    for (final c in channels) {
+    for (final c in filtered) {
       grouped.putIfAbsent(c.category, () => []).add(c);
     }
     final sortedCategories = grouped.entries.toList()
@@ -108,26 +116,59 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: ListView(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      body: Column(
         children: [
-          for (final entry in sortedCategories) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                entry.key,
-                style: const TextStyle(color: Color(0xFF533483), fontSize: 14, fontWeight: FontWeight.bold),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() { _searchQuery = v; }),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: '채널 검색...',
+                hintStyle: const TextStyle(color: Colors.white24),
+                prefixIcon: const Icon(Icons.search, color: Colors.white38),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white38),
+                        onPressed: () { _searchController.clear(); setState(() { _searchQuery = ''; }); },
+                      )
+                    : null,
+                filled: true,
+                fillColor: const Color(0xFF16213E),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
             ),
-            for (final channel in entry.value)
-              _ChannelTile(
-                key: _tileKeys.putIfAbsent(channel.id, () => GlobalKey()),
-                channel: channel,
-                isCurrent: channel.id == widget.currentChannelId,
-                onTap: () => Navigator.of(context).pop({'channelId': channel.id}),
-              ),
-          ],
+          ),
+          Expanded(
+            child: filtered.isEmpty
+                ? const Center(
+                    child: Text('검색 결과가 없습니다', style: TextStyle(color: Colors.white38, fontSize: 14)),
+                  )
+                : ListView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      for (final entry in sortedCategories) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Text(
+                            entry.key,
+                            style: const TextStyle(color: Color(0xFF533483), fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        for (final channel in entry.value)
+                          _ChannelTile(
+                            key: _tileKeys.putIfAbsent(channel.id, () => GlobalKey()),
+                            channel: channel,
+                            isCurrent: channel.id == widget.currentChannelId,
+                            onTap: () => Navigator.of(context).pop({'channelId': channel.id}),
+                          ),
+                      ],
+                    ],
+                  ),
+          ),
         ],
       ),
     );
