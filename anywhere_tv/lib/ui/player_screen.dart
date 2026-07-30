@@ -242,6 +242,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (player == null) return;
     _errorSub = player.stream.error.listen((msg) {
       if (!mounted) return;
+      if (msg.contains('Cannot seek') || msg.contains('force-seekable')) {
+        return;
+      }
       _log.warn('Player', 'Stream error: $msg');
       if (_retryCount < 3) {
         _retryCount++;

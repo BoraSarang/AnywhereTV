@@ -151,73 +151,61 @@ class StreamResolver {
       return null;
     }
     final liveUrl = 'https://www.youtube.com/$handle/live';
-    final liveUri = Uri.parse(liveUrl);
     _log.apiCall('Youtube', 'GET', liveUrl);
 
     String? videoId;
     try {
-      final response = await http.get(liveUri,
-        headers: {
+      final client = http.Client();
+      try {
+        final request = http.Request('GET', Uri.parse(liveUrl));
+        request.headers.addAll({
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
           'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
-        },
-      ).timeout(const Duration(seconds: 10));
-      _log.apiResponse('Youtube', response.statusCode, '$liveUri');
-      if (response.statusCode != 200) {
-        _log.error('Youtube', 'HTTP ${response.statusCode} for $liveUri');
-        return null;
-      }
-
-      final body = response.body;
-      // ytInitialPlayerResponse에서 videoId 추출 (brace-depth 파싱)
-      final initStart = body.indexOf('ytInitialPlayerResponse = ');
-      if (initStart >= 0) {
-        final braceStart = body.indexOf('{', initStart);
-        if (braceStart >= 0) {
-          int depth = 0;
-          for (int i = braceStart; i < body.length; i++) {
-            if (body[i] == '{') { depth++; continue; }
-            if (body[i] == '}') { depth--; if (depth == 0) {
-              try {
-                final json = jsonDecode(body.substring(braceStart, i + 1));
-                videoId = json['currentVideoEndpoint']?['watchEndpoint']?['videoId'] as String?;
-                videoId ??= json['videoDetails']?['videoId'] as String?;
-              } catch (_) {}
-              break;
-            }}
+        });
+        final streamedResponse = await client.send(request).timeout(const Duration(seconds: 10));
+        _log.apiResponse('Youtube', streamedResponse.statusCode, '$liveUrl');
+        final redirectUrl = streamedResponse.request?.url.toString() ?? liveUrl;
+        final watchMatch = RegExp(r'watch\?v=([a-zA-Z0-9_-]{11})').firstMatch(redirectUrl);
+        if (watchMatch != null) {
+          videoId = watchMatch.group(1);
+          _log.info('Youtube', 'videoId from redirect: $videoId');
+        } else {
+          final response = await http.Response.fromStream(streamedResponse);
+          if (response.statusCode != 200) {
+            _log.error('Youtube', 'HTTP ${response.statusCode} for $liveUrl');
+            return null;
           }
-        }
-      }
-      // fallback: ytInitialData
-      if (videoId == null) {
-        final dataStart = body.indexOf('ytInitialData = ');
-        if (dataStart >= 0) {
-          final braceStart = body.indexOf('{', dataStart);
-          if (braceStart >= 0) {
-            int depth = 0;
-            for (int i = braceStart; i < body.length; i++) {
-              if (body[i] == '{') { depth++; }
-              else if (body[i] == '}') { depth--; if (depth == 0) {
-                try {
-                  final json = jsonDecode(body.substring(braceStart, i + 1));
-                  final rs = json['contents']?['twoColumnWatchNextResults']?['results']?['results']?['contents'] as List?;
-                  if (rs != null) {
-                    for (final c in rs) {
-                      final v = c?['videoPrimaryInfoRenderer']?['title']?['runs']?[0]?['navigationEndpoint']?['watchEndpoint']?['videoId'] as String?;
-                      if (v != null) { videoId = v; break; }
-                    }
-                  }
-                } catch (_) {}
-                break;
-              }}
+          final body = response.body;
+          // Look for watch?v= in HTML
+          final watchInBody = RegExp(r'watch\?v=([a-zA-Z0-9_-]{11})').firstMatch(body);
+          if (watchInBody != null) {
+            videoId = watchInBody.group(1);
+            _log.info('Youtube', 'videoId from HTML: $videoId');
+          }
+          // Try ytInitialPlayerResponse JSON
+          if (videoId == null) {
+            final initStart = body.indexOf('ytInitialPlayerResponse = ');
+            if (initStart >= 0) {
+              final braceStart = body.indexOf('{', initStart);
+              if (braceStart >= 0) {
+                int depth = 0;
+                for (int i = braceStart; i < body.length; i++) {
+                  if (body[i] == '{') { depth++; continue; }
+                  if (body[i] == '}') { depth--; if (depth == 0) {
+                    try {
+                      final json = jsonDecode(body.substring(braceStart, i + 1));
+                      videoId = json['currentVideoEndpoint']?['watchEndpoint']?['videoId'] as String?;
+                      videoId ??= json['videoDetails']?['videoId'] as String?;
+                    } catch (_) {}
+                    break;
+                  }}
+                }
+              }
             }
           }
         }
-      }
-      // fallback: HTML watch?v= 패턴
-      if (videoId == null) {
-        final watchMatch = RegExp(r'watch\?v=([a-zA-Z0-9_-]{11})').firstMatch(body);
-        if (watchMatch != null) videoId = watchMatch.group(1);
+      } finally {
+        client.close();
       }
     } catch (e) {
       _log.error('Youtube', 'Live page fetch failed: $e');
