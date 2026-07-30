@@ -8,6 +8,7 @@ import '../models/user_state.dart';
 import '../repositories/channel_repository.dart';
 import '../services/debug_logger.dart';
 import '../services/user_state_service.dart';
+import '../models/stream_resolution_result.dart';
 import '../sources/hls_player_adapter.dart';
 import '../resolvers/stream_resolver.dart';
 
@@ -40,6 +41,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _loading = false;
   String _preferredResolution = 'auto';
   bool _needsRestore = false;
+  String? _currentTitle;
 
   List<String> get _categoryOrder {
     final order = <String>[];
@@ -159,40 +161,43 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     await _disposeCurrentPlayer();
 
     try {
-      String? url;
+      StreamResolutionResult? result;
       if (channel.sourceType == 'youtube_live') {
         if (channel.youtubeHandle != null && channel.youtubeHandle!.isNotEmpty) {
           _log.info('Player', 'Resolving YouTube via handle: ${channel.youtubeHandle}');
-          url = await StreamResolver.resolve(
+          result = await StreamResolver.resolve(
             resolver: 'youtube_handle',
             resolverData: {'handle': channel.youtubeHandle},
             targetHeight: _targetHeight,
           );
         }
-        if (url == null && channel.youtubeVideoId != null && channel.youtubeVideoId!.isNotEmpty) {
+        if (result == null && channel.youtubeVideoId != null && channel.youtubeVideoId!.isNotEmpty) {
           _log.info('Player', 'Fallback to videoId: ${channel.youtubeVideoId}');
-          url = await StreamResolver.resolve(
+          result = await StreamResolver.resolve(
             resolver: 'youtube',
             resolverData: {'videoId': channel.youtubeVideoId},
             targetHeight: _targetHeight,
           );
         }
-        if (url == null) {
+        if (result == null) {
           _log.warn('Player', 'YouTube resolution returned null');
           _loadError = '라이브 스트림을 불러올 수 없습니다';
         }
       } else {
-        url = channel.streamUrl;
+        String? url = channel.streamUrl;
         if (url == null || url.isEmpty) {
           _log.info('Player', 'Resolving ${channel.name}...');
-          url = await _resolveStreamUrl(channel);
+          result = await _resolveStreamUrl(channel);
+        } else {
+          result = StreamResolutionResult(url: url);
         }
       }
 
-      if (url != null && url.isNotEmpty) {
-        _log.info('Player', 'Stream URL: ${url.length > 80 ? '${url.substring(0, 80)}...' : url}');
+      if (result != null && result.url.isNotEmpty) {
+        _log.info('Player', 'Stream URL: ${result.url.length > 80 ? '${result.url.substring(0, 80)}...' : result.url}');
+        _currentTitle = result.title;
         _hlsAdapter = await HlsPlayerAdapter.create(volume: _volume);
-        await _hlsAdapter!.play(url);
+        await _hlsAdapter!.play(result.url);
         _log.info('Player', 'Player started');
       } else if (_loadError == null) {
         _log.error('Player', 'No stream URL for ${channel.name}');
@@ -207,13 +212,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (mounted) setState(() { _loading = false; });
   }
 
-  Future<String> _resolveStreamUrl(Channel channel) async {
-    if (channel.resolver == null || channel.resolver!.isEmpty) return '';
+  Future<StreamResolutionResult?> _resolveStreamUrl(Channel channel) async {
+    if (channel.resolver == null || channel.resolver!.isEmpty) return null;
     return await StreamResolver.resolve(
       resolver: channel.resolver!,
       resolverData: channel.resolverData,
       targetHeight: _targetHeight,
-    ) ?? '';
+    );
   }
 
   Future<void> _disposeCurrentPlayer() async {
@@ -234,7 +239,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final name = _favoriteChannels[newIndex].name;
     _log.info('Player', 'Switch to: $name');
     if (mounted) {
-      setState(() { _currentIndex = newIndex; _showOverlay = true; _loadError = null; });
+      setState(() { _currentIndex = newIndex; _showOverlay = true; _loadError = null; _currentTitle = null; });
     }
     _resetOverlayTimer();
     _initPlayerForCurrentChannel();
@@ -503,15 +508,36 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               Positioned(
                 left: 0, right: 0, top: 0, bottom: 0,
                 child: Center(
-                  child: Text(
-                    channel.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.none,
-                      shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        channel.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
+                          shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
+                        ),
+                      ),
+                      if (_currentTitle != null && _currentTitle!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            _currentTitle!,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 16,
+                              decoration: TextDecoration.none,
+                              shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
