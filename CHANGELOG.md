@@ -16,6 +16,9 @@
 - Android: "Cannot seek in this stream" mpv 경고가 무한 재접속 루프 유발 → 필터 처리
 - YouTube handle resolver: 리다이렉트 + HTML fallback 개선
 
+### known issues
+- MBC HLS: 방송사 스트림에 자막이 영상에 박혀(burned-in) 있어 플레이어 레벨에서 제거 불가
+
 ### build
 - `flutter_background_service` 의존성 추가
 - media_kit_libs_android_video 의존성 추가

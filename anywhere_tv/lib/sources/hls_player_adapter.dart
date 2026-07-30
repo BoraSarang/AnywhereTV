@@ -68,21 +68,13 @@ class HlsPlayerAdapter {
   Future<void> play(String url) async {
     _log.info('HLS', 'play: $url');
     _initMpvApi();
-    await Future.wait([
-      _mpvSet('sub-visibility', 'no'),
-      _mpvSet('subs-fallback', 'no'),
-      _mpvSet('subs-with-matching-audio', 'no'),
-      _mpvSet('sub-scale', '0'),
-    ]);
+    await _mpvSet('sub-visibility', 'no');
     try {
       await player.setSubtitleTrack(SubtitleTrack.no());
     } catch (_) {}
     await player.open(Media(url));
     await player.play();
     await _applyVolume();
-    try {
-      await player.setSubtitleTrack(SubtitleTrack.no());
-    } catch (_) {}
     _log.info('HLS', 'play done, volume=$_volume');
   }
 
