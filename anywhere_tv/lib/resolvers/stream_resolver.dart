@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/stream_resolution_result.dart';
 import '../services/debug_logger.dart';
 
 /// HLS master manifest에서 최저 해상도 variant URL 추출
@@ -43,35 +44,41 @@ Future<String?> _filterHlsLowestQuality(String masterUrl, {int targetHeight = 36
 class StreamResolver {
   static final DebugLogger _log = DebugLogger.instance;
 
-  static Future<String?> resolve({
+  static Future<StreamResolutionResult?> resolve({
     required String resolver,
     Map<String, dynamic>? resolverData,
     int targetHeight = 360,
   }) async {
     _log.info('Resolver', '$resolver $resolverData');
-    String? url;
+    StreamResolutionResult? result;
     switch (resolver) {
       case 'kbs':
-        url = await _resolveKbs(resolverData);
+        final url = await _resolveKbs(resolverData);
+        if (url != null) result = StreamResolutionResult(url: url);
       case 'sbs':
-        url = await _resolveSbs(resolverData);
+        final url = await _resolveSbs(resolverData);
+        if (url != null) result = StreamResolutionResult(url: url);
       case 'mbc':
-        url = await _resolveMbc(resolverData);
+        final url = await _resolveMbc(resolverData);
+        if (url != null) result = StreamResolutionResult(url: url);
       case 'youtube':
-        url = await _resolveYoutube(resolverData);
+        result = await _resolveYoutube(resolverData);
       case 'youtube_handle':
-        url = await _resolveYoutubeHandle(resolverData);
+        result = await _resolveYoutubeHandle(resolverData);
       default:
         _log.warn('Resolver', 'Unknown resolver: $resolver');
     }
-    if (url != null) {
-      url = await _filterHlsLowestQuality(url, targetHeight: targetHeight);
+    if (result != null) {
+      final filtered = await _filterHlsLowestQuality(result.url, targetHeight: targetHeight);
+      if (filtered != null && filtered != result.url) {
+        result = StreamResolutionResult(url: filtered, title: result.title);
+      }
     }
-    return url;
+    return result;
   }
 
   // ── YouTube (InnerTube API, androidSdkless client) ──
-  static Future<String?> _resolveYoutube(Map<String, dynamic>? data) async {
+  static Future<StreamResolutionResult?> _resolveYoutube(Map<String, dynamic>? data) async {
     final videoId = data?['videoId'] as String?;
     if (videoId == null || videoId.isEmpty) {
       _log.error('Youtube', 'No videoId in resolverData');
@@ -113,6 +120,9 @@ class StreamResolver {
       }
 
       final json = jsonDecode(response.body);
+      final videoDetails = json['videoDetails'] as Map<String, dynamic>?;
+      final title = videoDetails?['title'] as String?;
+
       final streamingData = json['streamingData'] as Map<String, dynamic>?;
       if (streamingData == null) {
         _log.error('Youtube', 'No streamingData in response');
@@ -122,7 +132,7 @@ class StreamResolver {
       final hlsUrl = streamingData['hlsManifestUrl'] as String?;
       if (hlsUrl != null && hlsUrl.isNotEmpty) {
         _log.info('Youtube', 'HLS URL via InnerTube');
-        return hlsUrl;
+        return StreamResolutionResult(url: hlsUrl, title: title);
       }
 
       _log.error('Youtube', 'No hlsManifestUrl in streamingData');
@@ -134,7 +144,7 @@ class StreamResolver {
   }
 
   // ── YouTube Handle (채널 핸들 → live page → videoId → InnerTube) ──
-  static Future<String?> _resolveYoutubeHandle(Map<String, dynamic>? data) async {
+  static Future<StreamResolutionResult?> _resolveYoutubeHandle(Map<String, dynamic>? data) async {
     final handle = data?['handle'] as String?;
     if (handle == null || handle.isEmpty) {
       _log.error('Youtube', 'No handle in resolverData');
