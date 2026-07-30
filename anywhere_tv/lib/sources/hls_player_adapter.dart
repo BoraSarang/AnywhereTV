@@ -1,13 +1,22 @@
 import 'dart:async';
+import 'dart:ffi';
+import 'package:ffi/ffi.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../services/debug_logger.dart';
+
+typedef _MpvSetPropNative = Int32 Function(
+  Pointer, Pointer<Utf8>, Pointer<Utf8>,
+);
+typedef _MpvSetPropDart = int Function(
+  Pointer, Pointer<Utf8>, Pointer<Utf8>,
+);
 
 class HlsPlayerAdapter {
   final Player player;
   final VideoController controller;
   final DebugLogger _log = DebugLogger.instance;
-  double _volume = 100.0; // media_kit/mpv scale: 0-100
+  double _volume = 100.0;
 
   HlsPlayerAdapter._({required this.player, required this.controller, required double volume})
       : _volume = volume;
@@ -28,7 +37,26 @@ class HlsPlayerAdapter {
     await player.open(Media(url));
     await player.play();
     await _applyVolume();
+    _disableMpvSubtitles();
     _log.info('HLS', 'play done, volume=$_volume');
+  }
+
+  void _disableMpvSubtitles() {
+    try {
+      final lib = DynamicLibrary.open('libmpv.so');
+      final setProp = lib.lookupFunction<_MpvSetPropNative, _MpvSetPropDart>('mpv_set_property_string');
+      player.handle.then((handle) {
+        final ctx = Pointer.fromAddress(handle);
+        final name = 'sub-visibility'.toNativeUtf8();
+        final value = 'no'.toNativeUtf8();
+        setProp(ctx, name, value);
+        calloc.free(name);
+        calloc.free(value);
+        _log.info('HLS', 'mpv sub-visibility=no set');
+      });
+    } catch (e) {
+      _log.warn('HLS', 'mpv set sub-visibility failed: $e');
+    }
   }
 
   Future<void> pause() async { await player.pause(); }
@@ -36,7 +64,6 @@ class HlsPlayerAdapter {
   Future<void> stop() async { await player.stop(); }
 
   Future<void> setVolume(double volume) async {
-    // volume: 0.0-1.0 → mpv scale 0-100
     _volume = volume * 100.0;
     await _applyVolume();
   }
