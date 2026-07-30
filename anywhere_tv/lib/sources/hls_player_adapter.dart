@@ -14,8 +14,12 @@ class HlsPlayerAdapter {
 
   static Future<HlsPlayerAdapter> create({double volume = 0.5}) async {
     final player = Player();
-    final controller = VideoController(player);
-    // volume: 0.0-1.0 → mpv scale 0-100
+    final controller = VideoController(
+      player,
+      configuration: const VideoControllerConfiguration(
+        enableHardwareAcceleration: false,
+      ),
+    );
     return HlsPlayerAdapter._(player: player, controller: controller, volume: volume * 100.0);
   }
 
