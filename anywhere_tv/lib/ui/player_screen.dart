@@ -43,6 +43,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   String _preferredResolution = 'auto';
   bool _needsRestore = false;
   String? _currentTitle;
+  StreamSubscription? _errorSub;
+  int _retryCount = 0;
 
   List<String> get _categoryOrder {
     final order = <String>[];
@@ -208,6 +210,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _log.info('Player', 'Stream URL: ${result.url.length > 80 ? '${result.url.substring(0, 80)}...' : result.url}');
         _currentTitle = result.title;
         _hlsAdapter = await HlsPlayerAdapter.create(volume: _volume);
+        _setupErrorListener();
         await _hlsAdapter!.play(result.url);
         _log.info('Player', 'Player started');
         _updateBackgroundService();
@@ -233,7 +236,31 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+  void _setupErrorListener() {
+    _errorSub?.cancel();
+    final player = _hlsAdapter?.player;
+    if (player == null) return;
+    _errorSub = player.stream.error.listen((msg) {
+      if (!mounted) return;
+      _log.warn('Player', 'Stream error: $msg');
+      if (_retryCount < 3) {
+        _retryCount++;
+        _log.info('Player', 'Retry $_retryCount/3 in 3s...');
+        setState(() { _loadError = '재연결 중... ($_retryCount/3)'; });
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) _initPlayerForCurrentChannel();
+        });
+      } else {
+        _log.error('Player', 'All retries exhausted');
+        setState(() { _loadError = '스트림을 불러올 수 없습니다'; _isPlaying = false; });
+      }
+    });
+  }
+
   Future<void> _disposeCurrentPlayer() async {
+    _errorSub?.cancel();
+    _errorSub = null;
+    _retryCount = 0;
     try {
       if (_hlsAdapter != null) {
         await _hlsAdapter!.dispose();
