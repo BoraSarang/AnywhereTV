@@ -1,49 +1,32 @@
 # 어디서나 TV — 작업 추적 (TODO)
 
-> 최종 업데이트: 2026-07-28
+> 최종 업데이트: 2026-07-30
+> 현재 버전: v1.2.0
 
-## 진행 중 (Phase 1)
+## v1.2.0 — "EPG + 안정성"
 
-| 작업 | 상태 | 우선순위 |
-|------|------|---------|
-| DebugPanel v1.6 표준 준수 | completed | high |
-| 빌드 디스패처 (scripts/*.sh) | completed | high |
-| EBS1/EBS2 실제 재생 검증 | pending | high |
-| KBS/SBS/MBC 리졸버 디버깅 | pending | high |
-| YTN YouTube 라이브 videoId 조회 | pending | high |
-| 연합뉴스TV 실제 재생 검증 | pending | high |
+| 작업 | 상태 | 예상 시간 |
+|------|------|----------|
+| EPG 데이터 모델 (`EpgProgram`) + `epgUrl` 필드 | pending | 30m |
+| XMLTV/JSON EPG 파서 | pending | 1h |
+| EPG UI — 오버레이 프로그램명 | pending | 30m |
+| EPG UI — 채널 리스트 프로그램명 | pending | 30m |
+| 백그라운드 재생 (Android) | pending | 1h |
+| 자동 재연결 (Player error retry) | pending | 30m |
+| 채널 검색 | pending | 30m |
+| 빌드 + 테스트 + 릴리즈 | pending | 30m |
 
-## 세부 작업
+## 완료 (v1.1.0)
 
-- [x] Flutter 프로젝트 생성
-- [x] 의존성 설치
-- [x] Channel 모델
-- [x] UserState 모델 및 서비스
-- [x] ChannelRepository (빌트인 → 캐시 → 원격)
-- [x] HlsPlayerAdapter (media_kit)
-- [x] YoutubePlayerAdapter
-- [x] PlayerScreen (스와이프/오버레이/내비게이션)
-- [x] ChannelListScreen
-- [x] SettingsScreen
-- [x] main.dart (MediaKit, 테마, 라우팅)
-- [x] macOS 빌드 성공
-- [x] flutter analyze 통과 (0 issues)
-- [x] 앱 아이콘
-- [x] 번들 ID 통일 (com.borasarang.anywheretv)
-- [x] DebugLogger (platform, maskSecrets, formatForAgent)
-- [x] DebugPanel (플랫폼 필터, 320px 리사이즈, 1.5s 자동 재개)
-- [x] Cmd+Shift+D 키보드 단축키
-- [x] release 모드 DebugOverlay 제거
-- [x] build_and_run.sh 디스패처 (scripts/build-*.sh 분리)
-- [x] AGENTS.local.md 업데이트
-- [x] CHANGELOG.md 업데이트
-
-- [ ] EBS1/EBS2 실제 HLS 재생 검증
-- [ ] KBS 스트림 리졸버 (cfpwwwapi.kbs.co.kr)
-- [ ] SBS 스트림 리졸버 (apis.sbs.co.kr)
-- [ ] MBC 스트림 리졸버 (iMBC onair)
-- [ ] YTN YouTube 라이브 videoId 조회
-- [ ] 연합뉴스TV YouTube 재생 검증
-- [ ] Android SDK 설치 및 APK 빌드
-- [ ] iOS 빌드 확인
-- [ ] 채널 스트림 URL 전체 검증
+- [x] 27개 채널 설정 (v6)
+- [x] HLS + InnerTube 리졸버 (KBS/SBS/MBC/youtube)
+- [x] 즐겨찾기 + 카테고리 정렬
+- [x] 마지막 채널 복원
+- [x] 해상도 선택
+- [x] DebugLogger + DebugPanel
+- [x] Android 서명 APK (CI + 로컬)
+- [x] macOS 싱글 인스턴스
+- [x] INTERNET 퍼미션
+- [x] 생명주기 처리 (백그라운드 복원)
+- [x] YouTube videoId 우선 처리
+- [x] media_kit_libs_android_video 추가
