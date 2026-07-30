@@ -1,5 +1,26 @@
 # 변경 이력 (CHANGELOG)
 
+## v1.2.0 (2026-07-30) — EPG + Background Audio + 안정화
+
+### feat
+- EPG: InnerTube `videoDetails.title` 추출 → PlayerScreen 오버레이에 프로그램명 표시
+- EPG: `EpgService` — 채널별 현재/다음 프로그램 조회 지원
+- StreamResolver가 `StreamResolutionResult` 반환 (url + title)
+- Background Audio Service (Android foreground notification, 채널명 표시)
+- Auto-reconnect: stream error 발생 시 3회 자동 재시도 (mpv seek 경고 필터링)
+- 채널 검색: 채널 목록 화면에 검색 바 추가
+- 화면 회전 버튼: 상단 바에서 가로모드 고정/해제
+
+### fix
+- macOS: `BackgroundAudioService.init()`가 Android/iOS 외 플랫폼에서 크래시 → platform 가드 추가
+- Android: "Cannot seek in this stream" mpv 경고가 무한 재접속 루프 유발 → 필터 처리
+- YouTube handle resolver: 리다이렉트 + HTML fallback 개선
+
+### build
+- `flutter_background_service` 의존성 추가
+- media_kit_libs_android_video 의존성 추가
+- main/AndroidManifest.xml INTERNET 권한 추가 (release APK)
+
 ## v1.1.0 (2026-07-28) — Debug Panel + 빌드 디스패처
 
 ### feat [macos]
