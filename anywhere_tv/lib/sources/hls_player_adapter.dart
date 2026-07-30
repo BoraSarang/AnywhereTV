@@ -45,15 +45,21 @@ class HlsPlayerAdapter {
 
   Future<void> _mpvSet(String name, String value) async {
     final fn = _mpvSetProp;
-    if (fn == null) return;
+    if (fn == null) {
+      _log.warn('HLS', 'mpv API not initialized');
+      return;
+    }
     try {
       final handle = await player.handle;
-      final ctx = Pointer.fromAddress(handle);
+      final ptr = handle;
+      _log.info('HLS', 'mpv handle=$ptr');
+      final ctx = Pointer.fromAddress(ptr);
       final n = name.toNativeUtf8();
       final v = value.toNativeUtf8();
-      fn(ctx, n, v);
+      final result = fn(ctx, n, v);
       calloc.free(n);
       calloc.free(v);
+      _log.info('HLS', 'mpv set $name=$value -> $result');
     } catch (e) {
       _log.warn('HLS', 'mpv set $name=$value failed: $e');
     }
@@ -62,24 +68,22 @@ class HlsPlayerAdapter {
   Future<void> play(String url) async {
     _log.info('HLS', 'play: $url');
     _initMpvApi();
+    await Future.wait([
+      _mpvSet('sub-visibility', 'no'),
+      _mpvSet('subs-fallback', 'no'),
+      _mpvSet('subs-with-matching-audio', 'no'),
+      _mpvSet('sub-scale', '0'),
+    ]);
+    try {
+      await player.setSubtitleTrack(SubtitleTrack.no());
+    } catch (_) {}
     await player.open(Media(url));
     await player.play();
     await _applyVolume();
-    await _disableSubtitles();
+    try {
+      await player.setSubtitleTrack(SubtitleTrack.no());
+    } catch (_) {}
     _log.info('HLS', 'play done, volume=$_volume');
-  }
-
-  Future<void> _disableSubtitles() async {
-    // mpv has subs-fallback=yes by default in media_kit,
-    // which re-selects subtitles even when sid=no is set.
-    // Also subs-with-matching-audio=yes auto-selects subs matching audio language.
-    await Future.wait([
-      player.setSubtitleTrack(SubtitleTrack.no()).catchError((_) {}),
-      _mpvSet('subs-fallback', 'no'),
-      _mpvSet('subs-with-matching-audio', 'no'),
-      _mpvSet('sub-visibility', 'no'),
-    ]);
-    _log.info('HLS', 'subtitles disabled');
   }
 
   Future<void> pause() async { await player.pause(); }
