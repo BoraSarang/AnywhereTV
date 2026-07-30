@@ -27,7 +27,7 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   late List<Channel> _favoriteChannels;
   bool _showOverlay = true;
@@ -39,6 +39,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   double _volume = 1.0;
   bool _loading = false;
   String _preferredResolution = 'auto';
+  bool _needsRestore = false;
 
   List<String> get _categoryOrder {
     final order = <String>[];
@@ -75,6 +76,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _volume = widget.userState.lastVolume > 0 ? widget.userState.lastVolume : 1.0;
     _preferredResolution = widget.userState.preferredResolution;
     _initFavorites();
@@ -84,6 +86,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     HardwareKeyboard.instance.removeHandler(_handleKey);
     _overlayTimer?.cancel();
     try {
@@ -94,6 +97,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
     } catch (_) {}
     _hlsAdapter = null;
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _needsRestore) {
+      _needsRestore = false;
+      if (mounted) _initPlayerForCurrentChannel();
+    } else if (state == AppLifecycleState.paused) {
+      _needsRestore = true;
+      try {
+        _hlsAdapter?.stop();
+        _hlsAdapter?.dispose();
+      } catch (_) {}
+      _hlsAdapter = null;
+    }
   }
 
   bool _handleKey(KeyEvent event) {
