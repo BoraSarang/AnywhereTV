@@ -1,0 +1,212 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../models/channel.dart';
+import 'github_service.dart';
+
+class HistoryEntry {
+  final int version;
+  final String date;
+  final List<String> changes;
+
+  HistoryEntry({required this.version, required this.date, required this.changes});
+
+  Map<String, dynamic> toJson() => {'version': version, 'date': date, 'changes': changes};
+
+  factory HistoryEntry.fromJson(Map<String, dynamic> json) => HistoryEntry(
+    version: json['version'] as int,
+    date: json['date'] as String,
+    changes: (json['changes'] as List<dynamic>).map((c) => c as String).toList(),
+  );
+}
+
+class ChannelStore extends ChangeNotifier {
+  final GitHubService _github;
+
+  ChannelStore(this._github);
+
+  List<Channel> _channels = [];
+  List<String> _categories = [];
+  List<HistoryEntry> _history = [];
+  int _version = 1;
+  String _remoteUrl = '';
+  String _updatedAt = '';
+  bool _loading = false;
+  String? _error;
+  bool _dirty = false;
+  List<String> _pendingChanges = [];
+  bool _hasConfig = false;
+
+  List<Channel> get channels => List.unmodifiable(_channels);
+  List<String> get categories => List.unmodifiable(_categories);
+  List<HistoryEntry> get history => List.unmodifiable(_history);
+  int get version => _version;
+  String get remoteUrl => _remoteUrl;
+  String get updatedAt => _updatedAt;
+  bool get loading => _loading;
+  String? get error => _error;
+  bool get dirty => _dirty;
+  bool get hasConfig => _hasConfig;
+
+  List<Channel> channelsInCategory(String category) =>
+    _channels.where((c) => c.category == category).toList();
+
+  Future<bool> loadFromRemote() async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final raw = await _github.fetchFromRawUrl();
+      if (raw == null) {
+        _error = '원격 URL에서 데이터를 가져올 수 없습니다';
+        _loading = false;
+        notifyListeners();
+        return false;
+      }
+      _parseJson(raw);
+      _loading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error: $e';
+      _loading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void _parseJson(String raw) {
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    _version = json['version'] as int? ?? 1;
+    _updatedAt = json['updatedAt'] as String? ?? '';
+    _remoteUrl = json['remoteUrl'] as String? ?? '';
+    _channels = (json['channels'] as List<dynamic>?)
+        ?.map((e) => Channel.fromJson(e as Map<String, dynamic>))
+        .toList() ?? [];
+    _categories = (json['categories'] as List<dynamic>?)
+        ?.map((e) => e as String)
+        .toList() ?? [];
+    if (_categories.isEmpty) {
+      final cats = _channels.map((c) => c.category).toSet().toList()..sort();
+      _categories.addAll(cats);
+    }
+    final historyRaw = json['history'] as List<dynamic>?;
+    _history = historyRaw
+        ?.map((e) => HistoryEntry.fromJson(e as Map<String, dynamic>))
+        .toList() ?? [];
+    _dirty = false;
+    _pendingChanges = [];
+  }
+
+  String _toJson() {
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return const JsonEncoder.withIndent('  ').convert({
+      'version': _version,
+      'updatedAt': dateStr,
+      'remoteUrl': _remoteUrl,
+      'categories': _categories,
+      'history': _history.map((h) => h.toJson()).toList(),
+      'channels': _channels.map((c) => c.toJson()).toList(),
+    });
+  }
+
+  String generateJson() => _toJson();
+
+  Future<bool> saveToRemote({String? message}) async {
+    final changes = _pendingChanges.isEmpty ? ['채널 업데이트'] : _pendingChanges;
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    _version++;
+    _history.insert(0, HistoryEntry(version: _version, date: dateStr, changes: changes));
+    _pendingChanges = [];
+    _dirty = false;
+    final json = _toJson();
+    final msg = message ?? 'v$_version: ${changes.join(', ')}';
+    final ok = await _github.uploadToGist(json, message: msg);
+    if (!ok) {
+      _dirty = true;
+    }
+    notifyListeners();
+    return ok;
+  }
+
+  void addChannel(Channel channel) {
+    _channels.add(channel);
+    _dirty = true;
+    _pendingChanges.add('추가: ${channel.name}');
+    notifyListeners();
+  }
+
+  void updateChannel(int index, Channel channel) {
+    _channels[index] = channel;
+    _dirty = true;
+    _pendingChanges.add('수정: ${channel.name}');
+    notifyListeners();
+  }
+
+  void removeChannel(int index) {
+    final name = _channels[index].name;
+    _channels.removeAt(index);
+    _dirty = true;
+    _pendingChanges.add('삭제: $name');
+    notifyListeners();
+  }
+
+  void addCategory(String name) {
+    if (!_categories.contains(name)) {
+      _categories.add(name);
+      _dirty = true;
+      _pendingChanges.add('카테고리 추가: $name');
+      notifyListeners();
+    }
+  }
+
+  void renameCategory(String oldName, String newName) {
+    final idx = _categories.indexOf(oldName);
+    if (idx < 0) return;
+    _categories[idx] = newName;
+    for (int i = 0; i < _channels.length; i++) {
+      if (_channels[i].category == oldName) {
+        _channels[i] = _channels[i].copyWith(category: newName);
+      }
+    }
+    _dirty = true;
+      _pendingChanges.add('카테고리 이름 변경: $oldName → $newName');
+    notifyListeners();
+  }
+
+  void deleteCategory(String name) {
+    _categories.remove(name);
+    _dirty = true;
+    _pendingChanges.add('카테고리 삭제: $name');
+    notifyListeners();
+  }
+
+  void reorderCategories(int oldIndex, int newIndex) {
+    if (oldIndex < newIndex) newIndex--;
+    final item = _categories.removeAt(oldIndex);
+    _categories.insert(newIndex, item);
+    _dirty = true;
+    notifyListeners();
+  }
+
+  void reorderChannels(String category, int oldIndex, int newIndex) {
+    final catChannels = channelsInCategory(category);
+    if (oldIndex >= catChannels.length || newIndex > catChannels.length) return;
+    final globalOld = _channels.indexOf(catChannels[oldIndex]);
+    if (oldIndex < newIndex) {
+      final globalNew = _channels.indexOf(catChannels[newIndex - 1]);
+      if (globalNew < 0) return;
+      final item = _channels.removeAt(globalOld);
+      _channels.insert(globalNew, item);
+    } else {
+      final globalNew = _channels.indexOf(catChannels[newIndex]);
+      if (globalNew < 0) return;
+      final item = _channels.removeAt(globalOld);
+      _channels.insert(globalNew, item);
+    }
+    _dirty = true;
+    notifyListeners();
+  }
+}
