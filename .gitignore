@@ -38,3 +38,6 @@ dist/
 
 # SDK
 Android SDK
+# packages/shared
+packages/shared/.dart_tool/
+packages/shared/build/
