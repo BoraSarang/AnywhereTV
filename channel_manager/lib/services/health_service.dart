@@ -21,7 +21,7 @@ class ChannelHealth {
 
 class HealthService extends ChangeNotifier {
   static const int _concurrency = 4;
-  static const Duration _timeout = Duration(seconds: 10);
+  static const Duration _timeout = Duration(seconds: 20);
 
   final DebugLogger _log = DebugLogger.instance;
   final Map<String, ChannelHealth> _results = {};
@@ -58,12 +58,10 @@ class HealthService extends ChangeNotifier {
     notifyListeners();
 
     _log.action('Health', 'checkAll 시작: ${channels.length}개 채널');
-    final batches = <Future<void>>[];
     for (var i = 0; i < channels.length; i += _concurrency) {
       final batch = channels.skip(i).take(_concurrency).toList();
-      batches.add(Future.wait(batch.map(checkChannel)));
+      await Future.wait(batch.map(checkChannel));
     }
-    await Future.wait(batches);
     _checking = false;
     _log.action('Health', 'checkAll 완료: ok=$okCount failed=$failedCount unknown=$unknownCount');
     notifyListeners();
@@ -96,24 +94,65 @@ class HealthService extends ChangeNotifier {
   }
 
   Future<ChannelHealth> _checkInternal(Channel channel) async {
-    final resolver = channel.resolver;
+    final isYoutube = channel.youtubeVideoId != null ||
+        channel.youtubeHandle != null ||
+        channel.resolver == 'youtube' ||
+        channel.resolver == 'youtube_handle';
+    final resolver = channel.resolver ??
+        (channel.youtubeVideoId != null
+            ? 'youtube'
+            : channel.youtubeHandle != null ? 'youtube_handle' : null);
+    final resolverData = channel.resolverData ??
+        (channel.youtubeVideoId != null
+            ? {'videoId': channel.youtubeVideoId}
+            : channel.youtubeHandle != null
+                ? {'handle': channel.youtubeHandle}
+                : const {});
     if (resolver != null && resolver.isNotEmpty && resolver != 'hls') {
       final resolved = await StreamResolver.resolve(
         resolver: resolver,
-        resolverData: channel.resolverData ?? const {},
+        resolverData: resolverData,
+        filterQuality: false,
       ).timeout(_timeout);
       if (resolved != null) {
+        if (resolved.url.contains('.m3u8')) {
+          final manifest = await _checkHls(resolved.url);
+          if (manifest.status == HealthStatus.ok) {
+            return isYoutube
+                ? ChannelHealth(
+                    status: HealthStatus.ok,
+                    message: '라이브 스트림 + HLS 매니페스트 응답',
+                    latencyMs: 0,
+                  )
+                : const ChannelHealth(
+                    status: HealthStatus.ok,
+                    message: '스트림 획득 + HLS 매니페스트 응답',
+                    latencyMs: 0,
+                  );
+          }
+          return ChannelHealth(
+            status: HealthStatus.failed,
+            message: '스트림 URL은 획득했지만 매니페스트 응답 없음: ${manifest.message}',
+            latencyMs: 0,
+          );
+        }
         return const ChannelHealth(
           status: HealthStatus.ok,
           message: '스트림 획득 성공',
           latencyMs: 0,
         );
       }
-      return const ChannelHealth(
-        status: HealthStatus.failed,
-        message: '스트림을 가져올 수 없음 (방송 중 아님)',
-        latencyMs: 0,
-      );
+      return isYoutube
+          ? const ChannelHealth(
+              status: HealthStatus.failed,
+              message: '스트림을 가져올 수 없음 (방송 중 아님)',
+              latencyMs: 0,
+            )
+          : const ChannelHealth(
+              status: HealthStatus.failed,
+              message: '스트림을 가져올 수 없음',
+              latencyMs: 0,
+            );
     }
 
     final url = channel.streamUrl;

@@ -14,7 +14,7 @@ class LogoService {
 
   static Future<List<LogoCandidate>> _loadKrList() async {
     if (_cachedKr != null) return _cachedKr!;
-    final url = 'https://iptv-org.github.io/iptv/index.country.kr.m3u';
+    final url = 'https://iptv-org.github.io/iptv/countries/kr.m3u';
     final response = await http
         .get(Uri.parse(url))
         .timeout(const Duration(seconds: 20));

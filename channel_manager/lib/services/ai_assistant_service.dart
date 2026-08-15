@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:anywhere_shared/debug_logger.dart';
 
 class AiAssistantService {
-  static const String _model = 'gemini-1.5-flash';
+  static const List<String> _models = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
   static final DebugLogger _log = DebugLogger.instance;
 
   static Future<String?> generateChannelsJson({
@@ -30,48 +30,49 @@ $currentJson
 $instruction
 ''';
 
-    final url =
-        'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent?key=$apiKey';
-    final body = jsonEncode({
-      'contents': [
-        {
-          'role': 'user',
-          'parts': [
-            {'text': prompt},
-          ],
-        },
-      ],
-    });
-
     _log.apiCall('AI', 'POST', 'generateContent');
-    try {
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
-            body: body,
-          )
-          .timeout(const Duration(seconds: 60));
-      _log.apiResponse('AI', response.statusCode, 'generateContent');
-      if (response.statusCode != 200) {
-        _log.error('AI', 'HTTP ${response.statusCode}: ${response.body}');
-        return null;
+    for (final model in _models) {
+      final url =
+          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
+      final body = jsonEncode({
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [
+              {'text': prompt},
+            ],
+          },
+        ],
+      });
+      try {
+        final response = await http
+            .post(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            )
+            .timeout(const Duration(seconds: 60));
+        _log.apiResponse('AI', response.statusCode, 'generateContent ($model)');
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body) as Map<String, dynamic>;
+          final candidates = json['candidates'] as List<dynamic>?;
+          if (candidates == null || candidates.isEmpty) {
+            _log.error('AI', 'candidates 없음');
+            return null;
+          }
+          final parts = (candidates.first as Map<String, dynamic>)['content']
+              ?['parts'] as List<dynamic>?;
+          if (parts == null || parts.isEmpty) return null;
+          final text = (parts.first as Map<String, dynamic>)['text'] as String?;
+          if (text == null) return null;
+          return text.trim();
+        }
+        _log.warn('AI', 'HTTP ${response.statusCode}: ${response.body}');
+      } catch (e) {
+        _log.error('AI', '요청 실패: $e');
       }
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final candidates = json['candidates'] as List<dynamic>?;
-      if (candidates == null || candidates.isEmpty) {
-        _log.error('AI', 'candidates 없음');
-        return null;
-      }
-      final parts = (candidates.first as Map<String, dynamic>)['content']
-          ?['parts'] as List<dynamic>?;
-      if (parts == null || parts.isEmpty) return null;
-      final text = (parts.first as Map<String, dynamic>)['text'] as String?;
-      if (text == null) return null;
-      return text.trim();
-    } catch (e) {
-      _log.error('AI', '요청 실패: $e');
-      return null;
     }
+    _log.error('AI', '모든 모델 실패');
+    return null;
   }
 }

@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/channel_store.dart';
 import '../services/github_service.dart';
@@ -21,6 +22,7 @@ import 'health_report_screen.dart';
 import 'm3u_import_screen.dart';
 import 'ai_assistant_screen.dart';
 import '../services/m3u_service.dart';
+import '../services/logo_cache_service.dart';
 
 class UndoIntent extends Intent {}
 
@@ -58,6 +60,15 @@ class _MainScreenState extends State<MainScreen> {
     _initAutoCheck();
   }
 
+  Future<void> _precacheLogos() async {
+    final urls = _store.channels
+        .map((c) => c.logoUrl)
+        .where((u) => u.isNotEmpty)
+        .toList();
+    await LogoCacheService.precache(urls);
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _autoCheckTimer?.cancel();
@@ -74,11 +85,17 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  bool _precached = false;
+
   void _onStoreChanged() {
     final ids = _store.channels.map((c) => c.id).toList();
     if (!listEquals(ids, _lastChannelIds)) {
       _lastChannelIds = ids;
       widget.health.invalidate(ids);
+      if (!_precached && ids.isNotEmpty) {
+        _precached = true;
+        _precacheLogos();
+      }
     }
   }
 
@@ -372,7 +389,10 @@ class _MainScreenState extends State<MainScreen> {
         );
       }
     }
-    setState(_selectedIds.clear);
+    setState(() {
+      _selectedIds.clear();
+      _selectionMode = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('선택 채널을 "$category"(으)로 이동했습니다')),
     );
@@ -398,7 +418,10 @@ class _MainScreenState extends State<MainScreen> {
                   _store.removeChannel(all.indexOf(ch));
                 }
               }
-              setState(_selectedIds.clear);
+              setState(() {
+                _selectedIds.clear();
+                _selectionMode = false;
+              });
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
           ),
@@ -522,11 +545,21 @@ class _MainScreenState extends State<MainScreen> {
     final result = await Navigator.push<Channel>(
       context,
       MaterialPageRoute(
-        builder: (_) => AddChannelScreen(categories: _store.categories),
+        builder: (_) => AddChannelScreen(
+          categories: _store.categories,
+          existingChannels: _store.channels,
+        ),
       ),
     );
     if (result != null && mounted) {
       _store.addChannel(result);
+      final idx = _store.categories.indexOf(result.category);
+      if (idx >= 0) {
+        setState(() => _selectedCategoryIndex = idx);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('채널 추가됨: ${result.name} (${result.category})')),
+      );
     }
   }
 
@@ -660,18 +693,43 @@ class _MainScreenState extends State<MainScreen> {
         builder: (_) => M3uImportScreen(
           entries: entries,
           categories: _store.categories,
+          existingChannels: _store.channels,
         ),
       ),
     );
     if (channels == null || !mounted) return;
+    var skipped = 0;
+    var addedCount = 0;
     for (final ch in channels) {
+      final dupe = _store.channels.any((e) =>
+          e.name.toLowerCase() == ch.name.toLowerCase() ||
+          (ch.youtubeVideoId != null &&
+              ch.youtubeVideoId!.isNotEmpty &&
+              e.youtubeVideoId == ch.youtubeVideoId) ||
+          (ch.youtubeHandle != null &&
+              ch.youtubeHandle!.isNotEmpty &&
+              e.youtubeHandle == ch.youtubeHandle) ||
+          (ch.streamUrl != null &&
+              ch.streamUrl!.isNotEmpty &&
+              e.streamUrl == ch.streamUrl));
+      if (dupe) {
+        skipped++;
+        DebugLogger.instance.info(
+            'M3U', '중복 스킵: ${ch.name} (${ch.category}, ${ch.sourceType})');
+        continue;
+      }
       if (!_store.categories.contains(ch.category)) {
         _store.addCategory(ch.category);
       }
       _store.addChannel(ch);
+      addedCount++;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('채널 ${channels.length}개 추가 완료')),
+      SnackBar(
+        content: Text(skipped > 0
+            ? '채널 $addedCount개 추가 (중복 $skipped개 건너뜀)'
+            : '채널 $addedCount개 추가 완료'),
+      ),
     );
   }
 
@@ -719,6 +777,29 @@ class _MainScreenState extends State<MainScreen> {
         ),
       );
       if (proceed != true || !mounted) return;
+    } else {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Gist에 저장'),
+          content: Text(
+            '현재 ${_store.channels.length}개 채널을 v${_store.version + 1}로 저장합니다.\n'
+            '저장 시 로컬 백업도 함께 생성됩니다.\n\n'
+            '진행할까요?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('저장'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
     }
     final ok = await _store.saveToRemote();
     if (!mounted) return;
@@ -727,6 +808,60 @@ class _MainScreenState extends State<MainScreen> {
         content: Text(ok ? 'Gist에 저장 완료' : '저장 실패 (토큰이 필요합니다)'),
         backgroundColor: ok ? Colors.green : Colors.red,
       ),
+    );
+  }
+}
+
+class _ChannelLogo extends StatefulWidget {
+  final String url;
+
+  const _ChannelLogo({required this.url});
+
+  @override
+  State<_ChannelLogo> createState() => _ChannelLogoState();
+}
+
+class _ChannelLogoState extends State<_ChannelLogo> {
+  String? _cachedPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final p = await LogoCacheService.cachedPath(widget.url);
+    if (!mounted) return;
+    if (p != null) {
+      setState(() => _cachedPath = p);
+    } else {
+      final ok = await LogoCacheService.fetchAndSave(widget.url);
+      if (ok && mounted) {
+        final cp = await LogoCacheService.cachedPath(widget.url);
+        if (mounted) setState(() => _cachedPath = cp);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final path = _cachedPath;
+    if (path != null) {
+      return Image.file(
+        File(path),
+        width: 40,
+        height: 40,
+        errorBuilder: (_, e, __) {
+          DebugLogger.instance.error('Logo', '파일 로드 실패: $e');
+          return const Icon(Icons.tv);
+        },
+      );
+    }
+    return const SizedBox(
+      width: 40,
+      height: 40,
+      child: Icon(Icons.tv, color: Colors.grey),
     );
   }
 }
@@ -766,8 +901,7 @@ class _ChannelRow extends StatelessWidget {
                 onChanged: (_) => onToggleSelect(),
               )
             : channel.logoUrl.isNotEmpty
-                ? Image.network(channel.logoUrl, width: 40, height: 40,
-                    errorBuilder: (_, _, _) => const Icon(Icons.tv))
+                ? _ChannelLogo(url: channel.logoUrl)
                 : const Icon(Icons.tv),
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -799,7 +933,10 @@ class _ChannelRow extends StatelessWidget {
           ],
         ),
         onTap: selectionMode ? onToggleSelect : null,
-        subtitle: Text(channel.category, style: const TextStyle(fontSize: 11)),
+        subtitle: Text(
+          '${channel.category} · id: ${channel.id}',
+          style: const TextStyle(fontSize: 11),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

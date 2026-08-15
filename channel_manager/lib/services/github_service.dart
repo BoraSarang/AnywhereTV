@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 
 class GitHubConfig {
   String token;
@@ -28,6 +29,7 @@ class GitHubConfig {
 
 class GitHubService {
   static const _configKey = 'github_config';
+  static final DebugLogger _log = DebugLogger.instance;
 
   GitHubConfig _config = GitHubConfig();
 
@@ -60,7 +62,10 @@ class GitHubService {
   }
 
   Future<bool> uploadToGist(String content, {String? message}) async {
-    if (_config.token.isEmpty) return false;
+    if (_config.token.isEmpty) {
+      _log.warn('Github', '업로드 실패: 토큰이 없습니다');
+      return false;
+    }
     final url = 'https://api.github.com/gists/${_config.gistId}';
     final body = jsonEncode({
       'description': message ?? 'Update channels',
@@ -70,8 +75,14 @@ class GitHubService {
         },
       },
     });
+    _log.action('Github', 'Gist 업로드 시작: ${_config.gistId}');
     final response =
         await http.patch(Uri.parse(url), headers: _authHeaders, body: body);
-    return response.statusCode == 200;
+    if (response.statusCode == 200) {
+      _log.info('Github', 'Gist 업로드 성공 (${response.statusCode})');
+      return true;
+    }
+    _log.error('Github', 'Gist 업로드 실패: HTTP ${response.statusCode} ${response.body}');
+    return false;
   }
 }

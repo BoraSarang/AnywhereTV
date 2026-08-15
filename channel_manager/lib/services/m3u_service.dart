@@ -41,6 +41,18 @@ class M3uService {
     return null;
   }
 
+  static String _extractName(String line) {
+    var inQuote = false;
+    for (var i = 7; i < line.length; i++) {
+      final c = line[i];
+      if (c == '"') inQuote = !inQuote;
+      if (c == ',' && !inQuote) {
+        return line.substring(i + 1).trim();
+      }
+    }
+    return '';
+  }
+
   static List<M3uEntry> parse(String content) {
     final entries = <M3uEntry>[];
     final lines = content.split('\n');
@@ -49,7 +61,7 @@ class M3uService {
       if (!line.startsWith('#EXTINF')) continue;
       final logoMatch = RegExp(r'tvg-logo="([^"]*)"').firstMatch(line);
       final groupMatch = RegExp(r'group-title="([^"]*)"').firstMatch(line);
-      final namePart = line.substring(line.lastIndexOf(',') + 1).trim();
+      final namePart = _extractName(line);
       String? url;
       for (var j = i + 1; j < lines.length; j++) {
         final next = lines[j].trim();

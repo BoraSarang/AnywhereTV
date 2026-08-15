@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'services/github_service.dart';
 import 'services/channel_store.dart';
 import 'services/health_service.dart';
+import 'ui/debug_panel.dart';
 import 'screens/main_screen.dart';
 
 void main() {
@@ -49,7 +51,10 @@ class _ChannelManagerAppState extends State<ChannelManagerApp> {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: MainScreen(store: _store, github: _github, health: _health),
+      home: kReleaseMode
+          ? MainScreen(store: _store, github: _github, health: _health)
+          : DebugOverlay(
+              child: MainScreen(store: _store, github: _github, health: _health)),
     );
   }
 }

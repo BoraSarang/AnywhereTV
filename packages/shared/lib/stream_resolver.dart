@@ -58,6 +58,7 @@ class StreamResolver {
     required String resolver,
     Map<String, dynamic>? resolverData,
     int targetHeight = 360,
+    bool filterQuality = true,
   }) async {
     _log.info('Resolver', '$resolver $resolverData');
     StreamResolutionResult? result;
@@ -78,7 +79,7 @@ class StreamResolver {
       default:
         _log.warn('Resolver', 'Unknown resolver: $resolver');
     }
-    if (result != null) {
+    if (result != null && filterQuality) {
       final filtered = await _filterHlsLowestQuality(result.url, targetHeight: targetHeight);
       if (filtered != null && filtered != result.url) {
         result = StreamResolutionResult(url: filtered, title: result.title);
@@ -143,6 +144,35 @@ class StreamResolver {
       if (hlsUrl != null && hlsUrl.isNotEmpty) {
         _log.info('Youtube', 'HLS URL via InnerTube');
         return StreamResolutionResult(url: hlsUrl, title: title);
+      }
+
+      // VOD: progressive format (비디오+오디오 결합) 우선 사용
+      final formats = streamingData['formats'] as List? ?? [];
+      String? vodUrl;
+      var bestItag = 0;
+      for (final f in formats) {
+        final itag = (f['itag'] as num?)?.toInt() ?? 0;
+        final url = f['url'] as String?;
+        if (url == null) continue;
+        if (itag == 18 || itag == 22 || itag == 37 || itag == 59) {
+          if (itag > bestItag) {
+            bestItag = itag;
+            vodUrl = url;
+          }
+        }
+      }
+      if (vodUrl == null) {
+        for (final f in formats) {
+          final url = f['url'] as String?;
+          if (url != null) {
+            vodUrl = url;
+            break;
+          }
+        }
+      }
+      if (vodUrl != null) {
+        _log.info('Youtube', 'VOD URL via InnerTube (itag=$bestItag)');
+        return StreamResolutionResult(url: vodUrl, title: title);
       }
 
       _log.error('Youtube', 'No hlsManifestUrl in streamingData');

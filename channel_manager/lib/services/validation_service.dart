@@ -92,7 +92,8 @@ class ValidationService {
       }
       final hasStream = (ch.streamUrl?.isNotEmpty ?? false) ||
           (ch.youtubeHandle?.isNotEmpty ?? false) ||
-          (ch.youtubeVideoId?.isNotEmpty ?? false);
+          (ch.youtubeVideoId?.isNotEmpty ?? false) ||
+          (ch.resolver?.isNotEmpty ?? false);
       if (!hasStream) {
         issues.add(ValidationIssue(
           channelId: ch.id,

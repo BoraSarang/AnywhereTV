@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 import '../models/channel.dart';
 import 'github_service.dart';
 import 'backup_service.dart';
@@ -40,6 +41,7 @@ class _StoreSnapshot {
 
 class ChannelStore extends ChangeNotifier {
   static const int _maxUndo = 50;
+  static final DebugLogger _log = DebugLogger.instance;
 
   final GitHubService _github;
 
@@ -214,9 +216,13 @@ class ChannelStore extends ChangeNotifier {
 
   void addChannel(Channel channel) {
     _recordUndo();
-    _channels.add(channel);
+    final sameCatIdx = _channels.indexWhere((c) => c.category == channel.category);
+    final insertIdx = sameCatIdx == -1 ? _channels.length : sameCatIdx;
+    _channels.insert(insertIdx, channel);
     _dirty = true;
     _pendingChanges.add('추가: ${channel.name}');
+    _log.info('Store',
+        '채널 추가: ${channel.id} (${channel.category}) — 총 ${_channels.length}개');
     notifyListeners();
   }
 
@@ -225,6 +231,7 @@ class ChannelStore extends ChangeNotifier {
     _channels[index] = channel;
     _dirty = true;
     _pendingChanges.add('수정: ${channel.name}');
+    _log.info('Store', '채널 수정: ${channel.id} (${channel.category})');
     notifyListeners();
   }
 

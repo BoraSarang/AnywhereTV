@@ -5,11 +5,13 @@ import '../services/m3u_service.dart';
 class M3uImportScreen extends StatefulWidget {
   final List<M3uEntry> entries;
   final List<String> categories;
+  final List<Channel> existingChannels;
 
   const M3uImportScreen({
     super.key,
     required this.entries,
     required this.categories,
+    required this.existingChannels,
   });
 
   @override
@@ -37,12 +39,30 @@ class _M3uImportScreenState extends State<M3uImportScreen> {
     return entry.groupTitle.isNotEmpty ? entry.groupTitle : _defaultCategory;
   }
 
-  Channel _toChannel(M3uEntry entry) {
+  String _autoId(String name, Set<String> existingIds) {
+    final base = name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+    final root = base.isEmpty
+        ? 'channel_${DateTime.now().millisecondsSinceEpoch % 100000}'
+        : base;
+    var id = root;
+    var suffix = 2;
+    while (existingIds.contains(id)) {
+      id = '$root-$suffix';
+      suffix++;
+    }
+    return id;
+  }
+
+  Channel _toChannel(M3uEntry entry, Set<String> existingIds) {
     final type = M3uService.detectSourceType(entry.url);
     final handle = M3uService.extractHandle(entry.url);
     final videoId = M3uService.extractVideoId(entry.url);
     return Channel(
-      id: entry.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_'),
+      id: _autoId(entry.name, existingIds),
       name: entry.name,
       logoUrl: entry.logoUrl,
       streamUrl: type == 'hls' ? entry.url : null,
@@ -54,9 +74,10 @@ class _M3uImportScreenState extends State<M3uImportScreen> {
   }
 
   List<Channel> _selectedChannels() {
+    final existingIds = widget.existingChannels.map((c) => c.id).toSet();
     return widget.entries
         .where((e) => _selected.contains(e.url))
-        .map(_toChannel)
+        .map((e) => _toChannel(e, existingIds))
         .toList();
   }
 

@@ -13,6 +13,7 @@ class EditChannelScreen extends StatefulWidget {
 }
 
 class _EditChannelScreenState extends State<EditChannelScreen> {
+  late final TextEditingController _idController;
   late final TextEditingController _nameController;
   late final TextEditingController _logoUrlController;
   late final TextEditingController _streamUrlController;
@@ -26,6 +27,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
   void initState() {
     super.initState();
     final ch = widget.channel;
+    _idController = TextEditingController(text: ch.id);
     _nameController = TextEditingController(text: ch.name);
     _logoUrlController = TextEditingController(text: ch.logoUrl);
     _streamUrlController = TextEditingController(text: ch.streamUrl ?? '');
@@ -39,6 +41,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
 
   @override
   void dispose() {
+    _idController.dispose();
     _nameController.dispose();
     _logoUrlController.dispose();
     _streamUrlController.dispose();
@@ -49,17 +52,43 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
   }
 
   void _save() {
-    final channel = widget.channel.copyWith(
+    final videoId = _youtubeVideoIdController.text.trim().isEmpty
+        ? null
+        : _youtubeVideoIdController.text.trim();
+    final handle = _youtubeHandleController.text.trim().isEmpty
+        ? null
+        : _youtubeHandleController.text.trim();
+    final (resolver, resolverData) = switch (_sourceType) {
+      'youtube' || 'youtube_live' when videoId != null => (
+          'youtube',
+          {'videoId': videoId}
+        ),
+      'youtube' || 'youtube_live' when handle != null => (
+          'youtube_handle',
+          {'handle': handle}
+        ),
+      'youtube_handle' => (
+          'youtube_handle',
+          handle != null ? {'handle': handle} : null
+        ),
+      _ => (null, null),
+    };
+    final channel = Channel(
+      id: _idController.text.trim().isEmpty ? widget.channel.id : _idController.text.trim(),
       name: _nameController.text.trim(),
       logoUrl: _logoUrlController.text.trim(),
       streamUrl: _streamUrlController.text.trim().isEmpty ? null : _streamUrlController.text.trim(),
       backupStreamUrl: _backupStreamUrlController.text.trim().isEmpty
           ? null
           : _backupStreamUrlController.text.trim(),
-      youtubeHandle: _youtubeHandleController.text.trim().isEmpty ? null : _youtubeHandleController.text.trim(),
-      youtubeVideoId: _youtubeVideoIdController.text.trim().isEmpty ? null : _youtubeVideoIdController.text.trim(),
+      youtubeChannelId: widget.channel.youtubeChannelId,
+      youtubeVideoId: videoId,
+      youtubeHandle: handle,
       category: _selectedCategory,
       sourceType: _sourceType,
+      isDefaultFavorite: widget.channel.isDefaultFavorite,
+      resolver: resolver,
+      resolverData: resolverData,
     );
     Navigator.pop(context, channel);
   }
@@ -78,6 +107,15 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            TextField(
+              controller: _idController,
+              decoration: const InputDecoration(
+                labelText: '채널 ID (고유 식별자)',
+                hintText: '예: kbs1, diggle_6',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: '채널 이름', border: OutlineInputBorder()),
@@ -122,27 +160,54 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                 controller: _streamUrlController,
                 decoration: const InputDecoration(labelText: '스트림 URL (.m3u8)', border: OutlineInputBorder()),
               ),
-            if (_sourceType == 'hls')
+            if (_sourceType != 'hls')
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: TextField(
-                  controller: _backupStreamUrlController,
+                  controller: _streamUrlController,
                   decoration: const InputDecoration(
-                    labelText: '대체 URL (.m3u8, 선택)',
-                    hintText: '기본 스트림 실패 시 사용',
+                    labelText: '스트림 URL (선택, HLS 주소)',
+                    hintText: '직접 재생 URL이 있으면 입력 (보통 유튜브 채널은 비워 둠)',
                     border: OutlineInputBorder(),
                   ),
                 ),
               ),
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: TextField(
+                controller: _backupStreamUrlController,
+                decoration: const InputDecoration(
+                  labelText: '대체 URL (.m3u8, 선택)',
+                  hintText: '기본 스트림 실패 시 사용',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
             if (_sourceType == 'youtube_handle')
               TextField(
                 controller: _youtubeHandleController,
                 decoration: const InputDecoration(labelText: 'YouTube 핸들 (@handle)', border: OutlineInputBorder()),
               ),
-            if (_sourceType == 'youtube')
+            if (_sourceType == 'youtube' || _sourceType == 'youtube_live')
               TextField(
                 controller: _youtubeVideoIdController,
-                decoration: const InputDecoration(labelText: 'YouTube 비디오 ID', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'YouTube 비디오 ID',
+                  hintText: '예: 8s2pWol8p7M (URL의 v= 값)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            if (_sourceType == 'youtube' || _sourceType == 'youtube_live')
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: TextField(
+                  controller: _youtubeHandleController,
+                  decoration: const InputDecoration(
+                    labelText: 'YouTube 핸들 (선택, 비디오 ID와 동시 불필요)',
+                    hintText: '예: @ytnnews24 — 사용하지 않으면 비워 두세요',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
