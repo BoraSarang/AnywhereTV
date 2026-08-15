@@ -40,7 +40,7 @@ class _ChannelManagerAppState extends State<ChannelManagerApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '채널 관리자',
+      title: 'AnywhereTV Channel Editor',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorSchemeSeed: Colors.indigo,
