@@ -3,6 +3,7 @@ class Channel {
   final String name;
   final String logoUrl;
   final String? streamUrl;
+  final String? backupStreamUrl;
   final String? youtubeChannelId;
   final String? youtubeVideoId;
   final String? youtubeHandle;
@@ -17,6 +18,7 @@ class Channel {
     required this.name,
     required this.logoUrl,
     this.streamUrl,
+    this.backupStreamUrl,
     this.youtubeChannelId,
     this.youtubeVideoId,
     this.youtubeHandle,
@@ -33,6 +35,7 @@ class Channel {
       name: json['name'] as String,
       logoUrl: json['logoUrl'] as String? ?? '',
       streamUrl: json['streamUrl'] as String?,
+      backupStreamUrl: json['backupStreamUrl'] as String?,
       youtubeChannelId: json['youtubeChannelId'] as String?,
       youtubeVideoId: json['youtubeVideoId'] as String?,
       youtubeHandle: json['youtubeHandle'] as String?,
@@ -50,6 +53,7 @@ class Channel {
       'name': name,
       'logoUrl': logoUrl,
       'streamUrl': streamUrl,
+      'backupStreamUrl': backupStreamUrl,
       'youtubeChannelId': youtubeChannelId,
       'youtubeVideoId': youtubeVideoId,
       'youtubeHandle': youtubeHandle,
@@ -66,6 +70,7 @@ class Channel {
     String? name,
     String? logoUrl,
     String? streamUrl,
+    String? backupStreamUrl,
     String? youtubeChannelId,
     String? youtubeVideoId,
     String? youtubeHandle,
@@ -80,6 +85,7 @@ class Channel {
       name: name ?? this.name,
       logoUrl: logoUrl ?? this.logoUrl,
       streamUrl: streamUrl ?? this.streamUrl,
+      backupStreamUrl: backupStreamUrl ?? this.backupStreamUrl,
       youtubeChannelId: youtubeChannelId ?? this.youtubeChannelId,
       youtubeVideoId: youtubeVideoId ?? this.youtubeVideoId,
       youtubeHandle: youtubeHandle ?? this.youtubeHandle,

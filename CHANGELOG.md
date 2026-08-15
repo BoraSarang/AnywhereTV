@@ -1,5 +1,32 @@
 # 변경 이력 (CHANGELOG)
 
+## v2.3.0 (2026-08-15) — Channel Manager 고도화 (P0~P2)
+
+> 계획: `docs/plans/PLAN_v2.3_channel_manager.md`
+
+### feat [channel_manager][macos]
+- T-118 스트림 헬스체크: `HealthService` — 리졸버 호출(KBS/SBS/MBC/유튜브) + HLS 매니페스트 첫 바이트 확인, 동시 4개 검사, 채널 행 상태 아이콘, 전체 검사 버튼, 실패 리포트 화면(개별 재검사/테스트 재생)
+- T-119 중복/무결성 검사: `ValidationService` — 이름/id/스트림 URL/핸들/동영상 중복, 필수 필드 누락, 로고 URL 형식 — 저장 전 경고 다이얼로그 + 채널 행 경고 뱃지
+- T-120 Undo/Redo + 자동 백업: 스냅샷 스택(최대 50) + Cmd+Z / Cmd+Shift+Z 단축키, 저장 시 `~/Library/Application Support/AnywhereTVChannelEditor/backups/`에 자동 백업(최근 20개 유지)
+- T-121 일괄 편집: 선택 모드(체크박스) → 카테고리 일괄 이동/삭제, "실패 채널만 선택" 필터
+- T-122 로고 관리: iptv-org 한국 목록 기반 로고 자동 완성 검색(추가/편집 화면), 로고 URL 형식 검증
+- T-123 플레이리스트 Diff: 백업 파일 vs 현재 비교(추가/삭제/수정, 변경 필드 표시) — 버전 기록에서 진입
+- T-124 M3U 가져오기/내보내기: `file_selector`(entitlements read-write 추가), 가져오기는 미리보기+카테고리 매핑 후 일괄 추가
+- T-125 라이브 대시보드: 카테고리별 라이브 카운트, 온라인/오프라인 요약 바, 5분 자동 검사(설정 토글)
+- T-126 AI 어시스턴트: Gemini API 키 설정(SharedPreferences), 자연어 명령 → 수정된 JSON → Diff 미리보기 → 적용(Undo 가능). 에러: E-MAN-AUTH-1001, E-MAN-AI-1002
+- T-127 대체 URL 페일오버: Channel `backupStreamUrl` 필드(양쪽 앱) — 편집 화면 입력, 헬스체크 백업 검사, 어디서나TV 재생 실패 시 백업 전환
+
+### model
+- Channel (channel_manager + anywhere_tv): `backupStreamUrl` 필드 추가 (fromJson/toJson/copyWith)
+
+### test
+- `test/services_test.dart` 7건: ValidationService 3건, DiffService 1건, M3uService 2건, backupStreamUrl 직렬화 1건 — 총 8건 통과
+
+### docs
+- `docs/plans/PLAN_v2.3_channel_manager.md` 신규
+- `docs/channel-manager-plan.md` 기능 목록 갱신
+- `error_message_ko.json`: E-MAN-AUTH-1001, E-MAN-AI-1002, E-MAN-BACK-1001, E-MAN-M3U-1001 추가
+
 ## v2.2.0 (2026-08-15) — EPG 연동 (P1)
 
 ### feat [macos][android]

@@ -1,8 +1,23 @@
 # 어디서나 TV — 작업 추적 (TODO)
 
 > 최종 업데이트: 2026-08-15
-> 현재 버전: v2.2.0 — v2.0 계획 전체 완료
-> 상세 제안: `docs/plans/PLAN_v2.0_proposal.md`
+> 현재 버전: v2.3.0 — Channel Manager 고도화 완료
+> 상세 제안: `docs/plans/PLAN_v2.0_proposal.md`, `docs/plans/PLAN_v2.3_channel_manager.md`
+
+## v2.3 — Channel Manager 고도화 (전체 완료)
+
+| T-번호 | 작업 | 상태 | 예상 시간 |
+|--------|------|------|----------|
+| T-118 | 스트림 헬스체크 통합 (HealthService + 상태 아이콘 + 실패 리포트) | ✅ 완료 | 3h |
+| T-119 | 중복/무결성 검사 (ValidationService + 저장 전 경고 + 뱃지) | ✅ 완료 | 1.5h |
+| T-120 | Undo/Redo + 자동 백업 (스냅샷 스택, Cmd+Z, BackupService) | ✅ 완료 | 2h |
+| T-121 | 일괄 편집 (다중 선택 → 카테고리 이동/삭제) | ✅ 완료 | 1.5h |
+| T-122 | 로고 관리 (유효성 검사 + iptv-org 자동 완성 제안) | ✅ 완료 | 1.5h |
+| T-123 | 플레이리스트 Diff (백업 vs 현재 비교 화면) | ✅ 완료 | 1.5h |
+| T-124 | M3U 가져오기/내보내기 | ✅ 완료 | 1.5h |
+| T-125 | 라이브 대시보드 (카테고리 요약 + 5분 자동 검사) | ✅ 완료 | 1.5h |
+| T-126 | AI 어시스턴트 (Gemini API 키 설정 + 자연어 명령 → Diff 적용) | ✅ 완료 | 2h |
+| T-127 | 대체 URL 페일오버 (backupStreamUrl + 어디서나TV 재생 폴백) | ✅ 완료 | 2h |
 
 ## v2.0 — "지역화 + 개선" (전체 완료)
 

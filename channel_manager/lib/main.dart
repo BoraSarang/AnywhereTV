@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'services/github_service.dart';
 import 'services/channel_store.dart';
+import 'services/health_service.dart';
 import 'screens/main_screen.dart';
 
 void main() {
@@ -19,6 +20,7 @@ class ChannelManagerApp extends StatefulWidget {
 
 class _ChannelManagerAppState extends State<ChannelManagerApp> {
   final GitHubService _github = GitHubService();
+  final HealthService _health = HealthService();
   late final ChannelStore _store;
 
   @override
@@ -47,7 +49,7 @@ class _ChannelManagerAppState extends State<ChannelManagerApp> {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: MainScreen(store: _store, github: _github),
+      home: MainScreen(store: _store, github: _github, health: _health),
     );
   }
 }

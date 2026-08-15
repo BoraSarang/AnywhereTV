@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/channel_store.dart';
+import 'diff_screen.dart';
 
 class VersionHistoryScreen extends StatelessWidget {
   final ChannelStore store;
@@ -10,6 +11,16 @@ class VersionHistoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('버전 기록'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.compare_arrows),
+            tooltip: '백업 비교',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => DiffScreen(store: store)),
+            ),
+          ),
+        ],
       ),
       body: store.history.isEmpty
           ? const Center(child: Text('기록 없음'))

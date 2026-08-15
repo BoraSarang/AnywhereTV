@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../models/channel.dart';
+import '../widgets/logo_search_dialog.dart';
 import 'package:anywhere_shared/stream_resolver.dart';
 import '../services/player_service.dart';
 
@@ -204,9 +205,26 @@ class _AddChannelScreenState extends State<AddChannelScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _logoUrlController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '로고 URL (선택)',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: '이름으로 로고 검색',
+                  onPressed: () async {
+                    final name = _nameController.text.trim();
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('먼저 채널 이름을 입력하세요')),
+                      );
+                      return;
+                    }
+                    final result = await showLogoSearchDialog(context, name);
+                    if (result != null && mounted) {
+                      setState(() => _logoUrlController.text = result);
+                    }
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 16),

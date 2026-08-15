@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/channel.dart';
 import 'github_service.dart';
+import 'backup_service.dart';
 
 class HistoryEntry {
   final int version;
@@ -19,7 +20,27 @@ class HistoryEntry {
   );
 }
 
+class _StoreSnapshot {
+  final List<Channel> channels;
+  final List<String> categories;
+  final int version;
+  final String updatedAt;
+  final List<HistoryEntry> history;
+  final List<String> pendingChanges;
+
+  _StoreSnapshot({
+    required this.channels,
+    required this.categories,
+    required this.version,
+    required this.updatedAt,
+    required this.history,
+    required this.pendingChanges,
+  });
+}
+
 class ChannelStore extends ChangeNotifier {
+  static const int _maxUndo = 50;
+
   final GitHubService _github;
 
   ChannelStore(this._github);
@@ -35,6 +56,11 @@ class ChannelStore extends ChangeNotifier {
   bool _dirty = false;
   List<String> _pendingChanges = [];
   bool _hasConfig = false;
+  final List<_StoreSnapshot> _undoStack = [];
+  final List<_StoreSnapshot> _redoStack = [];
+
+  bool get canUndo => _undoStack.isNotEmpty;
+  bool get canRedo => _redoStack.isNotEmpty;
 
   List<Channel> get channels => List.unmodifiable(_channels);
   List<String> get categories => List.unmodifiable(_categories);
@@ -96,6 +122,47 @@ class ChannelStore extends ChangeNotifier {
         .toList() ?? [];
     _dirty = false;
     _pendingChanges = [];
+    _undoStack.clear();
+    _redoStack.clear();
+  }
+
+  _StoreSnapshot _snapshot() => _StoreSnapshot(
+        channels: List.of(_channels),
+        categories: List.of(_categories),
+        version: _version,
+        updatedAt: _updatedAt,
+        history: List.of(_history),
+        pendingChanges: List.of(_pendingChanges),
+      );
+
+  void _restore(_StoreSnapshot snap) {
+    _channels = List.of(snap.channels);
+    _categories = List.of(snap.categories);
+    _version = snap.version;
+    _updatedAt = snap.updatedAt;
+    _history = List.of(snap.history);
+    _pendingChanges = List.of(snap.pendingChanges);
+    _dirty = true;
+  }
+
+  void _recordUndo() {
+    _undoStack.add(_snapshot());
+    if (_undoStack.length > _maxUndo) _undoStack.removeAt(0);
+    _redoStack.clear();
+  }
+
+  void undo() {
+    if (_undoStack.isEmpty) return;
+    _redoStack.add(_snapshot());
+    _restore(_undoStack.removeLast());
+    notifyListeners();
+  }
+
+  void redo() {
+    if (_redoStack.isEmpty) return;
+    _undoStack.add(_snapshot());
+    _restore(_redoStack.removeLast());
+    notifyListeners();
   }
 
   String _toJson() {
@@ -124,14 +191,29 @@ class ChannelStore extends ChangeNotifier {
     final json = _toJson();
     final msg = message ?? 'v$_version: ${changes.join(', ')}';
     final ok = await _github.uploadToGist(json, message: msg);
-    if (!ok) {
+    if (ok) {
+      await BackupService.saveBackup(content: json, version: _version);
+    } else {
       _dirty = true;
     }
     notifyListeners();
     return ok;
   }
 
+  void applyAiResult({
+    required List<Channel> channels,
+    required List<String> categories,
+  }) {
+    _recordUndo();
+    _channels = List.of(channels);
+    _categories = List.of(categories);
+    _dirty = true;
+    _pendingChanges.add('AI 변경 적용');
+    notifyListeners();
+  }
+
   void addChannel(Channel channel) {
+    _recordUndo();
     _channels.add(channel);
     _dirty = true;
     _pendingChanges.add('추가: ${channel.name}');
@@ -139,6 +221,7 @@ class ChannelStore extends ChangeNotifier {
   }
 
   void updateChannel(int index, Channel channel) {
+    _recordUndo();
     _channels[index] = channel;
     _dirty = true;
     _pendingChanges.add('수정: ${channel.name}');
@@ -146,6 +229,7 @@ class ChannelStore extends ChangeNotifier {
   }
 
   void removeChannel(int index) {
+    _recordUndo();
     final name = _channels[index].name;
     _channels.removeAt(index);
     _dirty = true;
@@ -155,6 +239,7 @@ class ChannelStore extends ChangeNotifier {
 
   void addCategory(String name) {
     if (!_categories.contains(name)) {
+      _recordUndo();
       _categories.add(name);
       _dirty = true;
       _pendingChanges.add('카테고리 추가: $name');
@@ -165,6 +250,7 @@ class ChannelStore extends ChangeNotifier {
   void renameCategory(String oldName, String newName) {
     final idx = _categories.indexOf(oldName);
     if (idx < 0) return;
+    _recordUndo();
     _categories[idx] = newName;
     for (int i = 0; i < _channels.length; i++) {
       if (_channels[i].category == oldName) {
@@ -177,6 +263,7 @@ class ChannelStore extends ChangeNotifier {
   }
 
   void deleteCategory(String name) {
+    _recordUndo();
     _categories.remove(name);
     _dirty = true;
     _pendingChanges.add('카테고리 삭제: $name');
@@ -184,6 +271,7 @@ class ChannelStore extends ChangeNotifier {
   }
 
   void reorderCategories(int oldIndex, int newIndex) {
+    _recordUndo();
     if (oldIndex < newIndex) newIndex--;
     final item = _categories.removeAt(oldIndex);
     _categories.insert(newIndex, item);
@@ -192,6 +280,7 @@ class ChannelStore extends ChangeNotifier {
   }
 
   void reorderChannels(String category, int oldIndex, int newIndex) {
+    _recordUndo();
     final catChannels = channelsInCategory(category);
     if (oldIndex >= catChannels.length || newIndex > catChannels.length) return;
     final globalOld = _channels.indexOf(catChannels[oldIndex]);
