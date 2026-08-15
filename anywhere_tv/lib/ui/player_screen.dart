@@ -51,6 +51,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   String? _currentTitle;
   StreamSubscription? _errorSub;
   int _retryCount = 0;
+  bool _usedBackup = false;
   bool _isLandscapeLocked = false;
   Timer? _epgTimer;
   EpgProgram? _notifiedProgram;
@@ -231,6 +232,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         }
       }
 
+      if (result == null && !_usedBackup &&
+          channel.backupStreamUrl != null && channel.backupStreamUrl!.isNotEmpty) {
+        _log.info('Player', 'Falling back to backup stream URL: ${channel.name}');
+        _usedBackup = true;
+        result = StreamResolutionResult(url: channel.backupStreamUrl!);
+      }
+
       if (result != null && result.url.isNotEmpty) {
         _log.info('Player', 'Stream URL: ${result.url.length > 80 ? '${result.url.substring(0, 80)}...' : result.url}');
         _currentTitle = result.title;
@@ -334,6 +342,16 @@ _loadError = ErrorMessages.get('E-COM-NET-1001', fallback: '스트림을 불러�
         Future.delayed(const Duration(seconds: 3), () {
           if (mounted) _initPlayerForCurrentChannel();
         });
+      } else if (!_usedBackup &&
+          currentChannel?.backupStreamUrl != null &&
+          currentChannel!.backupStreamUrl!.isNotEmpty) {
+        _usedBackup = true;
+        _retryCount = 0;
+        _log.info('Player', 'All retries exhausted, switching to backup URL');
+        setState(() { _loadError = '대체 스트림으로 전환 중...'; });
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) _initPlayerForCurrentChannel();
+        });
       } else {
         _log.error('Player', 'All retries exhausted');
         setState(() { _loadError = ErrorMessages.get('E-COM-NET-1001'); _isPlaying = false; });
@@ -345,6 +363,7 @@ _loadError = ErrorMessages.get('E-COM-NET-1001', fallback: '스트림을 불러�
     _errorSub?.cancel();
     _errorSub = null;
     _retryCount = 0;
+    _usedBackup = false;
     try {
       if (_hlsAdapter != null) {
         await _hlsAdapter!.dispose();
