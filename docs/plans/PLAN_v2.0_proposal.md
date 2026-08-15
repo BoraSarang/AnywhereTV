@@ -75,12 +75,14 @@
 | T-116 | 시청 기록 | 최근 본 채널 표시 | 30m |
 | T-117 | 방송 시작 알림 | EPG 기반 로컬 알림 (v1.2+ 연동) | 1h |
 
-### P5 — 플랫폼 확장
+### P5 — 플랫폼 확장 (제외 확정 2026-08-15)
 
-| T-번호 | 항목 | 내용 | 예상 공수 |
+> 사용자 결정: **Web/PWA(T-119)와 iOS/iPad(T-118)는 진행하지 않는다.** macOS + Android만 지원한다.
+
+| T-번호 | 항목 | 내용 | 상태 |
 |---|---|---|---|
-| T-118 | iOS/iPad | `media_kit_libs_ios_video`, iPad 적응형 | 2h |
-| T-119 | Web/PWA | HLS.js 대체 (CORS 검증 필요) | 2h |
+| T-118 | iOS/iPad | `media_kit_libs_ios_video`, iPad 적응형 | ❌ 제외 |
+| T-119 | Web/PWA | HLS.js 대체 (CORS 검증 필요) | ❌ 제외 |
 
 ### 별도 — 지역화 (T-100)
 
