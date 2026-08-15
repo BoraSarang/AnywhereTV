@@ -11,6 +11,7 @@ class Channel {
   final bool isDefaultFavorite;
   final String? resolver;
   final Map<String, dynamic>? resolverData;
+  final String? epgUrl;
 
   const Channel({
     required this.id,
@@ -25,6 +26,7 @@ class Channel {
     this.isDefaultFavorite = false,
     this.resolver,
     this.resolverData,
+    this.epgUrl,
   });
 
   factory Channel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class Channel {
       isDefaultFavorite: json['isDefaultFavorite'] as bool? ?? false,
       resolver: json['resolver'] as String?,
       resolverData: json['resolverData'] as Map<String, dynamic>?,
+      epgUrl: json['epgUrl'] as String?,
     );
   }
 
@@ -58,6 +61,7 @@ class Channel {
       'isDefaultFavorite': isDefaultFavorite,
       'resolver': resolver,
       'resolverData': resolverData,
+      'epgUrl': epgUrl,
     };
   }
 
@@ -74,6 +78,7 @@ class Channel {
     bool? isDefaultFavorite,
     String? resolver,
     Map<String, dynamic>? resolverData,
+    String? epgUrl,
   }) {
     return Channel(
       id: id ?? this.id,
@@ -88,6 +93,7 @@ class Channel {
       isDefaultFavorite: isDefaultFavorite ?? this.isDefaultFavorite,
       resolver: resolver ?? this.resolver,
       resolverData: resolverData ?? this.resolverData,
+      epgUrl: epgUrl ?? this.epgUrl,
     );
   }
 }

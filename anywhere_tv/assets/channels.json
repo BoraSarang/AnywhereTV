@@ -134,7 +134,7 @@
       "id": "kbs_gyoyang",
       "name": "KBS 교양",
       "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/KBS_1_logo.svg/500px-KBS_1_logo.svg.png",
-      "youtubeHandle": "kbslife",
+      "youtubeHandle": "@kbslife",
       "category": "교양",
       "sourceType": "youtube_live",
       "isDefaultFavorite": true
@@ -147,7 +147,9 @@
       "sourceType": "hls",
       "isDefaultFavorite": true,
       "resolver": "kbs",
-      "resolverData": {"channelCode": "11"}
+      "resolverData": {
+        "channelCode": "11"
+      }
     },
     {
       "id": "kbs2",
@@ -157,7 +159,9 @@
       "sourceType": "hls",
       "isDefaultFavorite": true,
       "resolver": "kbs",
-      "resolverData": {"channelCode": "12"}
+      "resolverData": {
+        "channelCode": "12"
+      }
     },
     {
       "id": "mbc",
@@ -176,7 +180,9 @@
       "sourceType": "hls",
       "isDefaultFavorite": true,
       "resolver": "sbs",
-      "resolverData": {"channelId": "S01"}
+      "resolverData": {
+        "channelId": "S01"
+      }
     },
     {
       "id": "yonhap",
@@ -257,9 +263,97 @@
       "id": "allthekpop",
       "name": "ALL THE K-POP",
       "logoUrl": "",
-      "youtubeHandle": "allthekpop",
+      "youtubeHandle": "@allthekpop",
       "category": "음악",
       "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "jtbc",
+      "name": "JTBC",
+      "youtubeHandle": "@JTBC",
+      "category": "종편",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "mbn",
+      "name": "MBN",
+      "youtubeHandle": "@mbnofficial",
+      "category": "종편",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "tvchosun",
+      "name": "TV조선",
+      "youtubeHandle": "@TVCHOSUN",
+      "category": "종편",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "channela",
+      "name": "채널A",
+      "youtubeHandle": "@channela",
+      "category": "종편",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "kbs24",
+      "name": "KBS NEWS 24",
+      "youtubeHandle": "@KBSNEWS",
+      "category": "뉴스",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "natv",
+      "name": "국회방송",
+      "youtubeHandle": "@natv",
+      "category": "뉴스",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "ktv",
+      "name": "KTV 국민방송",
+      "youtubeHandle": "@ktv",
+      "category": "뉴스",
+      "sourceType": "youtube_live",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "tbn_gyeongin",
+      "name": "TBN 경인교통방송",
+      "category": "라디오",
+      "sourceType": "hls",
+      "streamUrl": "http://radio2.tbn.or.kr:1935/gyeongin/myStream/playlist.m3u8",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "febc_seoul",
+      "name": "FEBC 서울극동방송",
+      "category": "라디오",
+      "sourceType": "hls",
+      "streamUrl": "http://mlive2.febc.net:1935/live/seoulfm/playlist.m3u8",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "ebs_fm",
+      "name": "EBS FM",
+      "category": "라디오",
+      "sourceType": "hls",
+      "streamUrl": "https://ebsonair.ebs.co.kr/fmradiofamilypc/familypc1m/playlist.m3u8",
+      "isDefaultFavorite": false
+    },
+    {
+      "id": "ytn_radio",
+      "name": "YTN 라디오",
+      "category": "라디오",
+      "sourceType": "hls",
+      "streamUrl": "https://radiolive.ytn.co.kr/radio/_definst_/20211118_fmlive/playlist.m3u8",
       "isDefaultFavorite": false
     }
   ]

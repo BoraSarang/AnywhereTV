@@ -1,17 +1,23 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'channel_list_screen.dart';
+import 'epg_timeline_screen.dart';
 import '../models/channel.dart';
 import '../models/user_state.dart';
 import '../repositories/channel_repository.dart';
-import '../services/debug_logger.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 import '../services/user_state_service.dart';
-import '../models/stream_resolution_result.dart';
+import '../services/tts_service.dart';
+import '../services/epg_service.dart';
+import '../services/error_messages.dart';
+import '../models/epg_program.dart';
+import 'package:anywhere_shared/stream_resolution_result.dart';
 import '../services/background_service.dart';
 import '../sources/hls_player_adapter.dart';
-import '../resolvers/stream_resolver.dart';
+import 'package:anywhere_shared/stream_resolver.dart';
 
 class PlayerScreen extends StatefulWidget {
   final ChannelRepository channelRepo;
@@ -46,6 +52,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   StreamSubscription? _errorSub;
   int _retryCount = 0;
   bool _isLandscapeLocked = false;
+  Timer? _epgTimer;
+  EpgProgram? _notifiedProgram;
+  final Map<String, _CachedStream> _streamCache = {};
+  static const _maxCacheSize = 5;
+  static const _cacheTtl = Duration(minutes: 10);
 
   void _toggleOrientation() {
     setState(() { _isLandscapeLocked = !_isLandscapeLocked; });
@@ -61,23 +72,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         DeviceOrientation.landscapeRight,
       ]);
     }
-  }
-
-  List<String> get _categoryOrder {
-    final order = <String>[];
-    for (final ch in widget.channelRepo.channels) {
-      if (!order.contains(ch.category)) order.add(ch.category);
-    }
-    return order;
-  }
-
-  void _sortByCategoryOrder() {
-    final order = _categoryOrder;
-    _favoriteChannels.sort((a, b) {
-      final ai = order.indexOf(a.category);
-      final bi = order.indexOf(b.category);
-      return (ai == -1 ? 999 : ai).compareTo(bi == -1 ? 999 : bi);
-    });
   }
 
   int get _targetHeight {
@@ -103,6 +97,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _preferredResolution = widget.userState.preferredResolution;
     _initFavorites();
     _initPlayerForCurrentChannel();
+    _initPipSupport();
     HardwareKeyboard.instance.addHandler(_handleKey);
   }
 
@@ -111,6 +106,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     HardwareKeyboard.instance.removeHandler(_handleKey);
     _overlayTimer?.cancel();
+    _epgTimer?.cancel();
     BackgroundAudioService.stop();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -169,11 +165,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final saved = widget.userState.favoriteChannelIds;
     final all = widget.channelRepo.channels;
     if (saved.isNotEmpty) {
-      _favoriteChannels = all.where((c) => saved.contains(c.id)).toList();
+      _favoriteChannels = saved
+          .map((id) => all.where((c) => c.id == id).toList())
+          .where((l) => l.isNotEmpty)
+          .map((l) => l.first)
+          .toList();
     } else {
       _favoriteChannels = widget.channelRepo.defaultFavorites.toList();
     }
-    _sortByCategoryOrder();
+    final missing = all.where((c) => !saved.contains(c.id)).toList();
+    if (missing.isNotEmpty && _favoriteChannels.length != all.length) {
+      _favoriteChannels = [..._favoriteChannels, ...missing];
+    }
     if (_favoriteChannels.isEmpty) {
       _favoriteChannels = List.from(all);
     }
@@ -216,7 +219,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         }
         if (result == null) {
           _log.warn('Player', 'YouTube resolution returned null');
-          _loadError = '라이브 스트림을 불러올 수 없습니다';
+          _loadError = ErrorMessages.get('E-COM-NET-1003', fallback: '라이브 스트림을 불러올 수 없습니다');
         }
       } else {
         String? url = channel.streamUrl;
@@ -235,14 +238,16 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _setupErrorListener();
         await _hlsAdapter!.play(result.url);
         _log.info('Player', 'Player started');
+        _speakChannel();
         _updateBackgroundService();
+        _startEpgPolling();
       } else if (_loadError == null) {
         _log.error('Player', 'No stream URL for ${channel.name}');
-        _loadError = '스트림 주소를 확인할 수 없습니다';
+        _loadError = ErrorMessages.get('E-COM-NET-1002', fallback: '스트림 주소를 확인할 수 없습니다');
       }
     } catch (e, s) {
       _log.error('Player', 'Init failed: $e\n$s');
-      _loadError = '스트림을 불러올 수 없습니다';
+_loadError = ErrorMessages.get('E-COM-NET-1001', fallback: '스트림을 불러올 수 없습니다');
       await _disposeCurrentPlayer();
     }
 
@@ -250,12 +255,66 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Future<StreamResolutionResult?> _resolveStreamUrl(Channel channel) async {
+    final cached = _streamCache[channel.id];
+    if (cached != null && DateTime.now().difference(cached.timestamp) < _cacheTtl) {
+      _log.info('Player', 'Stream cache hit: ${channel.id}');
+      return cached.result;
+    }
     if (channel.resolver == null || channel.resolver!.isEmpty) return null;
-    return await StreamResolver.resolve(
+    final result = await StreamResolver.resolve(
       resolver: channel.resolver!,
       resolverData: channel.resolverData,
       targetHeight: _targetHeight,
     );
+    if (result != null) {
+      _streamCache[channel.id] = _CachedStream(result: result, timestamp: DateTime.now());
+      if (_streamCache.length > _maxCacheSize) {
+        final oldest = _streamCache.entries
+            .reduce((a, b) => a.value.timestamp.isBefore(b.value.timestamp) ? a : b)
+            .key;
+        _streamCache.remove(oldest);
+      }
+    }
+    return result;
+  }
+
+  Future<void> _setupEpgAlerts() async {
+    if (!widget.userState.broadcastAlertsEnabled) return;
+    final channel = currentChannel;
+    final epgUrl = channel?.epgUrl ?? widget.userState.epgServerUrl;
+    if (epgUrl == null || epgUrl.isEmpty || channel == null) return;
+    try {
+      final programs = await EpgService.fetchFromUrl(epgUrl, channel.id);
+      final next = EpgService.nextProgram(programs);
+      if (next == null) return;
+      final diff = next.startTime.difference(DateTime.now());
+      if (diff.isNegative) return;
+      if (_notifiedProgram?.title == next.title) return;
+      if (diff <= const Duration(minutes: 5)) {
+        _notifiedProgram = next;
+        _log.system('EPG', 'Alert: ${channel.name} → ${next.title} 시작 (${diff.inMinutes}분 후)');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF533483),
+              content: Text('${channel.name}: ${next.title} 방송이 ${diff.inMinutes}분 후 시작됩니다'),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      _log.warn('EPG', 'Alert check failed: $e');
+    }
+  }
+
+  void _startEpgPolling() {
+    _epgTimer?.cancel();
+    if (!widget.userState.broadcastAlertsEnabled) return;
+    _setupEpgAlerts();
+    _epgTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _setupEpgAlerts();
+    });
   }
 
   void _setupErrorListener() {
@@ -277,7 +336,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         });
       } else {
         _log.error('Player', 'All retries exhausted');
-        setState(() { _loadError = '스트림을 불러올 수 없습니다'; _isPlaying = false; });
+        setState(() { _loadError = ErrorMessages.get('E-COM-NET-1001'); _isPlaying = false; });
       }
     });
   }
@@ -306,8 +365,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       setState(() { _currentIndex = newIndex; _showOverlay = true; _loadError = null; _currentTitle = null; });
     }
     _resetOverlayTimer();
+    _speakChannel();
+    _notifiedProgram = null;
+    _startEpgPolling();
     _initPlayerForCurrentChannel();
     widget.userStateService.setLastChannel(_favoriteChannels[_currentIndex].id);
+    widget.userStateService.recordWatch(_favoriteChannels[_currentIndex].id);
+  }
+
+  void _speakChannel() {
+    final channel = currentChannel;
+    if (channel == null) return;
+    final text = (_currentTitle != null && _currentTitle!.isNotEmpty)
+        ? '${channel.name}. $_currentTitle'
+        : channel.name;
+    TtsService.instance.speak(text);
   }
 
   void _nextChannel() {
@@ -361,12 +433,50 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     const MethodChannel('com.borasarang.anywheretv/window').invokeMethod('toggleFullscreen');
   }
 
+  static const MethodChannel _pipChannel = MethodChannel('com.borasarang.anywheretv/pip');
+  bool _pipSupported = false;
+
+  void _initPipSupport() {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    _pipChannel.invokeMethod<bool>('isPipSupported').then((v) {
+      if (mounted) setState(() => _pipSupported = v ?? false);
+    }).catchError((_) {});
+  }
+
+  void _enterPip() {
+    _pipChannel.invokeMethod('enterPip').catchError((_) {});
+    _log.system('Player', 'PiP requested');
+  }
+
+  void _openEpgTimeline() {
+    final channel = currentChannel;
+    if (channel == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EpgTimelineScreen(
+          channel: channel,
+          epgServerUrl: widget.userState.epgServerUrl,
+        ),
+      ),
+    );
+    _log.system('Player', 'EPG timeline opened for ${channel.id}');
+  }
+
   void _openChannelList() async {
+    final history = await widget.userStateService.loadWatchHistory();
+    if (!mounted) return;
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ChannelListScreen(
           channelRepo: widget.channelRepo,
           currentChannelId: currentChannel?.id,
+          favoriteChannelIds: _favoriteChannels.map((c) => c.id).toList(),
+          watchHistory: history,
+          epgServerUrl: widget.userState.epgServerUrl,
+          onFavoritesChanged: (updated) {
+            widget.userStateService.setFavoritesOrder(updated);
+            _log.system('Player', 'Favorites reordered: $updated');
+          },
         ),
       ),
     );
@@ -377,9 +487,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         final channel = widget.channelRepo.channels.firstWhere((c) => c.id == id);
         setState(() {
           _favoriteChannels.add(channel);
-          _sortByCategoryOrder();
           idx = _favoriteChannels.indexWhere((c) => c.id == id);
         });
+        final updated = _favoriteChannels.map((c) => c.id).toList();
+        widget.userStateService.setFavoritesOrder(updated);
       }
       _switchChannel(idx);
     }
@@ -398,6 +509,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _preferredResolution = result;
       widget.userStateService.setResolution(_preferredResolution);
       _log.system('Player', 'Resolution changed: $prevRes → $_preferredResolution');
+      _streamCache.clear();
       _initPlayerForCurrentChannel();
     }
   }
@@ -503,6 +615,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 child: Text(channel.category, style: const TextStyle(color: Colors.white70, fontSize: 13, decoration: TextDecoration.none)),
               ),
             const Spacer(),
+            GestureDetector(
+              onTap: _openEpgTimeline,
+              child: Container(
+                width: 44, height: 44,
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.calendar_month, color: Colors.white, size: 24),
+              ),
+            ),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: _openChannelList,
               child: Container(
@@ -652,6 +773,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       ),
                     ),
                     const SizedBox(width: 8),
+                    if (_pipSupported) ...[
+                      GestureDetector(
+                        onTap: _enterPip,
+                        child: Container(
+                          width: 44, height: 44,
+                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                          child: const Icon(Icons.picture_in_picture_alt, color: Colors.white, size: 24),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     GestureDetector(
                       onTap: _toggleFullscreen,
                       child: Container(
@@ -670,4 +802,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+}
+
+class _CachedStream {
+  final StreamResolutionResult result;
+  final DateTime timestamp;
+
+  const _CachedStream({required this.result, required this.timestamp});
 }

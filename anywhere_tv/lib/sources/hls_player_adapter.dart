@@ -3,7 +3,7 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import '../services/debug_logger.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 
 typedef _MpvSetPropNative = Int32 Function(
   Pointer, Pointer<Utf8>, Pointer<Utf8>,

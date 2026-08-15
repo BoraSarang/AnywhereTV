@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/channel.dart';
-import '../services/debug_logger.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 
 class ChannelRepository {
   static const _cacheKey = 'cached_channels_data';

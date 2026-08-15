@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../repositories/channel_repository.dart';
-import '../services/debug_logger.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ChannelRepository channelRepo;
   final String currentResolution;
   final ValueChanged<String> onResolutionChanged;
+  final bool ttsEnabled;
+  final ValueChanged<bool> onTtsChanged;
+  final bool broadcastAlertsEnabled;
+  final ValueChanged<bool> onBroadcastAlertsChanged;
+  final String? epgServerUrl;
+  final ValueChanged<String> onEpgServerUrlChanged;
 
   const SettingsScreen({
     super.key,
     required this.channelRepo,
     required this.currentResolution,
     required this.onResolutionChanged,
+    required this.ttsEnabled,
+    required this.onTtsChanged,
+    required this.broadcastAlertsEnabled,
+    required this.onBroadcastAlertsChanged,
+    this.epgServerUrl,
+    required this.onEpgServerUrlChanged,
   });
 
   @override
@@ -34,11 +46,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   };
 
   late String _selectedLabel;
+  late final TextEditingController _epgUrlController;
 
   @override
   void initState() {
     super.initState();
     _selectedLabel = _labelFor(widget.currentResolution);
+    _epgUrlController = TextEditingController(text: widget.epgServerUrl ?? '');
+  }
+
+  @override
+  void dispose() {
+    _epgUrlController.dispose();
+    super.dispose();
   }
 
   String _labelFor(String res) {
@@ -109,6 +129,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
           const SizedBox(height: 32),
+          _sectionHeader('접근성'),
+          SwitchListTile(
+            title: const Text('음성 안내', style: TextStyle(color: Colors.white, fontSize: 15)),
+            subtitle: const Text('채널 전환 시 채널명·프로그램명을 읽어드립니다', style: TextStyle(color: Colors.white54, fontSize: 12)),
+            value: widget.ttsEnabled,
+            activeThumbColor: const Color(0xFF533483),
+            onChanged: widget.onTtsChanged,
+          ),
+          SwitchListTile(
+            title: const Text('방송 시작 알림', style: TextStyle(color: Colors.white, fontSize: 15)),
+            subtitle: const Text('시청 중 채널의 다음 프로그램 시작을 알려드립니다', style: TextStyle(color: Colors.white54, fontSize: 12)),
+            value: widget.broadcastAlertsEnabled,
+            activeThumbColor: const Color(0xFF533483),
+            onChanged: widget.onBroadcastAlertsChanged,
+          ),
+
+          const SizedBox(height: 32),
+          _sectionHeader('EPG (방송 편성표)'),
+          TextField(
+            controller: _epgUrlController,
+            style: const TextStyle(color: Colors.white),
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(
+              labelText: 'EPG 서버 URL (xmltv.xml)',
+              labelStyle: const TextStyle(color: Colors.white54),
+              hintText: 'https://예시.com/xmltv.xml',
+              hintStyle: const TextStyle(color: Colors.white24),
+              filled: true,
+              fillColor: const Color(0xFF16213E),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) {
+              widget.onEpgServerUrlChanged(value.trim());
+              _log.system('Settings', 'EPG server URL changed');
+            },
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'epg2xml 등에서 생성한 XMLTV 주소를 입력하면 채널 목록에 현재 방영 중인 프로그램이 표시됩니다. (채널별 epgUrl이 있으면 우선 사용)',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ),
+
+          const SizedBox(height: 32),
           _sectionHeader('화질'),
           ...resolutions.map((label) => RadioListTile<String>(
             title: Text(label, style: const TextStyle(color: Colors.white, fontSize: 15)),
@@ -126,10 +194,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 32),
           _sectionHeader('앱 정보'),
           _infoTile('앱 이름', '어디서나 TV'),
-          _infoTile('앱 버전', 'v1.2.0'),
+          _infoTile('앱 버전', 'v2.2.0'),
           _infoTile('제작자', 'BoRaSaRang'),
           _linkTile('문의', 'leeborasarang@gmail.com', 'mailto:leeborasarang@gmail.com'),
-          _linkTile('후원하기', '☕ Buy Me a Coffee', 'https://buymeacoffee.com/borasarang'),
           _infoTile('채널 수', '${_channelCount()}개'),
           _infoTile('데이터 버전', 'v${widget.channelRepo.currentVersion}'),
         ],

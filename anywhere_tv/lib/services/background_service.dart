@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'debug_logger.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 
 class BackgroundAudioService {
   static final DebugLogger _log = DebugLogger.instance;

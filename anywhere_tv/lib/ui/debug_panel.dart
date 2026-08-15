@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/debug_logger.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 
 class DebugOverlay extends StatefulWidget {
   final Widget child;

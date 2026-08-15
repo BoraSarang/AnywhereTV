@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../models/channel.dart';
-import '../models/stream_resolution_result.dart';
-import '../services/stream_resolver.dart';
+import 'package:anywhere_shared/stream_resolution_result.dart';
+import 'package:anywhere_shared/stream_resolver.dart';
 import '../services/player_service.dart';
 
 class TestPlayScreen extends StatefulWidget {

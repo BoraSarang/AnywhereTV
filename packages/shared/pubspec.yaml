@@ -1,0 +1,17 @@
+name: anywhere_shared
+description: AnywhereTV 공유 패키지 (stream_resolver, debug_logger, stream_resolution_result)
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^4.0.0

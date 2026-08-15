@@ -1,0 +1,31 @@
+name: Resolver Health Check
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-check:
+    name: 리졸버 헬스체크
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 채널 데이터 스키마 검증
+        run: python3 scripts/validate_channels.py
+
+      - name: 리졸버 스트림 검증 (KBS/SBS/MBC + 정적 라디오)
+        run: python3 scripts/healthcheck_resolvers.py
+
+      - name: 리졸버 검증 요약
+        run: |
+          echo "모든 리졸버 검증 완료 (위 단계 실패 시 워크플로우 실패)"

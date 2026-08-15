@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dpad/dpad.dart';
 import '../models/channel.dart';
+import '../models/epg_program.dart';
 import '../repositories/channel_repository.dart';
+import '../services/epg_service.dart';
+import 'package:anywhere_shared/debug_logger.dart';
 
 class ChannelListScreen extends StatefulWidget {
   final ChannelRepository channelRepo;
   final String? currentChannelId;
+  final List<String> favoriteChannelIds;
+  final ValueChanged<List<String>> onFavoritesChanged;
+  final List<String> watchHistory;
+  final String? epgServerUrl;
 
   const ChannelListScreen({
     super.key,
     required this.channelRepo,
+    required this.favoriteChannelIds,
+    required this.onFavoritesChanged,
+    required this.watchHistory,
     this.currentChannelId,
+    this.epgServerUrl,
   });
 
   @override
@@ -22,6 +34,8 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   final Map<String, GlobalKey> _tileKeys = {};
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final Map<String, EpgProgram> _currentPrograms = {};
+  final DebugLogger _log = DebugLogger.instance;
 
   List<String> get _categoryOrder {
     final order = <String>[];
@@ -35,6 +49,25 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
+    _fetchCurrentPrograms();
+  }
+
+  Future<void> _fetchCurrentPrograms() async {
+    for (final channel in widget.channelRepo.channels) {
+      final epgUrl = channel.epgUrl ?? widget.epgServerUrl;
+      if (epgUrl == null || epgUrl.isEmpty || _currentPrograms.containsKey(channel.id)) {
+        continue;
+      }
+      try {
+        final programs = await EpgService.fetchFromUrl(epgUrl, channel.id);
+        final current = EpgService.currentProgram(programs);
+        if (current != null && mounted) {
+          setState(() => _currentPrograms[channel.id] = current);
+        }
+      } catch (e) {
+        _log.warn('EPG', 'Current program fetch failed for ${channel.id}: $e');
+      }
+    }
   }
 
   @override
@@ -95,8 +128,27 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
         ? allChannels
         : allChannels.where((c) => c.name.toLowerCase().contains(query)).toList();
 
+    final favorites = query.isEmpty
+        ? widget.favoriteChannelIds
+            .map((id) => allChannels.where((c) => c.id == id).toList())
+            .where((l) => l.isNotEmpty)
+            .map((l) => l.first)
+            .toList()
+        : <Channel>[];
+
+    final recent = query.isEmpty
+        ? widget.watchHistory
+            .map((id) => allChannels.where((c) => c.id == id).toList())
+            .where((l) => l.isNotEmpty)
+            .map((l) => l.first)
+            .where((c) => !favorites.any((f) => f.id == c.id))
+            .take(5)
+            .toList()
+        : <Channel>[];
+
     final grouped = <String, List<Channel>>{};
     for (final c in filtered) {
+      if (query.isEmpty && favorites.any((f) => f.id == c.id)) continue;
       grouped.putIfAbsent(c.category, () => []).add(c);
     }
     final sortedCategories = grouped.entries.toList()
@@ -150,6 +202,50 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     children: [
+                      if (query.isEmpty && recent.isNotEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Text(
+                            '최근 시청',
+                            style: TextStyle(color: Color(0xFF533483), fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        for (final channel in recent)
+                          DpadFocusable(
+                            key: ValueKey('recent-${channel.id}'),
+                            onSelect: () =>
+                                Navigator.of(context).pop({'channelId': channel.id}),
+                            child: _ChannelTile(
+                              channel: channel,
+                              isCurrent: channel.id == widget.currentChannelId,
+                              currentProgramTitle: _currentPrograms[channel.id]?.title,
+                              onTap: () =>
+                                  Navigator.of(context).pop({'channelId': channel.id}),
+                            ),
+                          ),
+                      ],
+                      if (query.isEmpty && favorites.isNotEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Text(
+                            '즐겨찾기 (길게 눌러 순서 변경)',
+                            style: TextStyle(color: Color(0xFF533483), fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        _FavoriteReorderList(
+                          channels: favorites,
+                          currentPrograms: _currentPrograms,
+                          currentChannelId: widget.currentChannelId,
+                          onTap: (channel) =>
+                              Navigator.of(context).pop({'channelId': channel.id}),
+                          onReorder: (from, to) {
+                            final updated = List<String>.from(widget.favoriteChannelIds);
+                            final moved = updated.removeAt(from);
+                            updated.insert(to, moved);
+                            widget.onFavoritesChanged(updated);
+                          },
+                        ),
+                      ],
                       for (final entry in sortedCategories) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -159,11 +255,17 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
                           ),
                         ),
                         for (final channel in entry.value)
-                          _ChannelTile(
-                            key: _tileKeys.putIfAbsent(channel.id, () => GlobalKey()),
-                            channel: channel,
-                            isCurrent: channel.id == widget.currentChannelId,
-                            onTap: () => Navigator.of(context).pop({'channelId': channel.id}),
+                          DpadFocusable(
+                            key: ValueKey('channel-${channel.id}'),
+                            onSelect: () =>
+                                Navigator.of(context).pop({'channelId': channel.id}),
+                            child: _ChannelTile(
+                              key: _tileKeys.putIfAbsent(channel.id, () => GlobalKey()),
+                              channel: channel,
+                              isCurrent: channel.id == widget.currentChannelId,
+                              currentProgramTitle: _currentPrograms[channel.id]?.title,
+                              onTap: () => Navigator.of(context).pop({'channelId': channel.id}),
+                            ),
                           ),
                       ],
                     ],
@@ -175,16 +277,61 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   }
 }
 
+class _FavoriteReorderList extends StatelessWidget {
+  final List<Channel> channels;
+  final String? currentChannelId;
+  final ValueChanged<Channel> onTap;
+  final ReorderCallback onReorder;
+  final Map<String, EpgProgram> currentPrograms;
+
+  const _FavoriteReorderList({
+    required this.channels,
+    required this.currentChannelId,
+    required this.onTap,
+    required this.onReorder,
+    required this.currentPrograms,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: channels.length,
+      onReorderItem: onReorder,
+      itemBuilder: (context, index) {
+        final channel = channels[index];
+        return ReorderableDelayedDragStartListener(
+          key: ValueKey(channel.id),
+          index: index,
+          child: _ChannelTile(
+            channel: channel,
+            isCurrent: channel.id == currentChannelId,
+            currentProgramTitle: currentPrograms[channel.id]?.title,
+            onTap: () => onTap(channel),
+            dragHandle: true,
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ChannelTile extends StatelessWidget {
   final Channel channel;
   final bool isCurrent;
   final VoidCallback onTap;
+  final bool dragHandle;
+  final String? currentProgramTitle;
 
   const _ChannelTile({
     super.key,
     required this.channel,
     required this.isCurrent,
     required this.onTap,
+    this.dragHandle = false,
+    this.currentProgramTitle,
   });
 
   Widget _buildLogo() {
@@ -235,8 +382,23 @@ class _ChannelTile extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         leading: _buildLogo(),
         title: Text(channel.name, style: const TextStyle(color: Colors.white, fontSize: 16)),
-        subtitle: Text(channel.sourceType == 'youtube_live' ? 'YouTube' : 'HLS',
-            style: const TextStyle(color: Colors.white38, fontSize: 12)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(channel.sourceType == 'youtube_live' ? 'YouTube' : 'HLS',
+                style: const TextStyle(color: Colors.white38, fontSize: 12)),
+            if (currentProgramTitle != null && currentProgramTitle!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  currentProgramTitle!,
+                  style: const TextStyle(color: Color(0xFF8CE99A), fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
         trailing: isCurrent
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -246,7 +408,7 @@ class _ChannelTile extends StatelessWidget {
                 ),
                 child: const Text('재생중', style: TextStyle(color: Colors.white, fontSize: 11)),
               )
-            : const Icon(Icons.play_arrow, color: Colors.white38),
+            : Icon(dragHandle ? Icons.drag_indicator : Icons.play_arrow, color: Colors.white38),
         onTap: onTap,
       ),
     );

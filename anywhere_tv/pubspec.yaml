@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.2.1+1
+version: 2.2.0+1
 
 environment:
   sdk: ^3.12.2
@@ -28,6 +28,8 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  anywhere_shared:
+    path: ../packages/shared
   flutter:
     sdk: flutter
 
@@ -45,6 +47,13 @@ dependencies:
   media_kit_libs_macos_video: ^1.1.4
   flutter_background_service: ^5.1.0
   ffi: ^2.1.0
+  flutter_tts: ^4.2.5
+  dpad: ^3.0.0
+  xml: ^6.6.1
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  sqlite3_flutter_libs: ^0.6.0+eol
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +65,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  drift_dev: ^2.34.5
+  build_runner: ^2.15.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -70,6 +81,7 @@ flutter:
 
   assets:
     - assets/channels.json
+    - ../error_message_ko.json
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

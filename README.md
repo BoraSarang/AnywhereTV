@@ -153,8 +153,7 @@
 ## 🤝 기여 & 문의
 
 - 프로젝트: [github.com/BoraSarang/AnywhereTV](https://github.com/BoraSarang/AnywhereTV)
-- 문의: [이슈 등록](https://github.com/BoraSarang/AnywhereTV/issues)
-- 후원: [Buy Me a Coffee](https://buymeacoffee.com/borasarang)
+- 문의: [이슈 등록](https://github.com/BoraSarang/AnywhereTV/issues) · leeborasarang@gmail.com
 
 ---
 
