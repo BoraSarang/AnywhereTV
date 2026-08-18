@@ -47,6 +47,8 @@ class _LogoSearchDialogState extends State<_LogoSearchDialog> {
   bool _selecting = false;
   String? _error;
   String? _apiKey;
+  int? _hoveredAi;
+  int? _hoveredIptv;
 
   @override
   void initState() {
@@ -138,8 +140,8 @@ class _LogoSearchDialogState extends State<_LogoSearchDialog> {
     return AlertDialog(
       title: Text('로고 검색: ${widget.query}'),
       content: SizedBox(
-        width: 460,
-        height: 420,
+        width: 480,
+        height: 440,
         child: Column(
           children: [
             Row(
@@ -218,29 +220,41 @@ class _LogoSearchDialogState extends State<_LogoSearchDialog> {
                               itemCount: _aiResults.length,
                               itemBuilder: (context, index) {
                                 final c = _aiResults[index];
-                                return ListTile(
-                                  dense: true,
-                                  leading: c.logoUrl != null && c.logoUrl!.isNotEmpty
-                                      ? Image.network(
-                                          c.logoUrl!,
-                                          width: 32,
-                                          height: 32,
-                                          errorBuilder: (_, _, _) =>
-                                              const Icon(Icons.live_tv),
-                                        )
-                                      : const Icon(Icons.live_tv),
-                                  title: Text(c.name,
-                                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  subtitle: c.description.isNotEmpty
-                                      ? Text(c.description,
-                                          maxLines: 1, overflow: TextOverflow.ellipsis)
-                                      : null,
-                                  trailing: c.platform != null
-                                      ? Text(c.platform!,
-                                          style: const TextStyle(
-                                              fontSize: 11, color: Colors.blueGrey))
-                                      : null,
-                                  onTap: () => _selectCandidate(c),
+                                return MouseRegion(
+                                  onEnter: (_) =>
+                                      setState(() => _hoveredAi = index),
+                                  onExit: (_) => setState(() => _hoveredAi = null),
+                                  child: ListTile(
+                                    dense: true,
+                                    visualDensity:
+                                        const VisualDensity(vertical: -4),
+                                    tileColor: _hoveredAi == index
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest
+                                        : null,
+                                    leading: c.logoUrl != null && c.logoUrl!.isNotEmpty
+                                        ? Image.network(
+                                            c.logoUrl!,
+                                            width: 32,
+                                            height: 32,
+                                            errorBuilder: (_, _, _) =>
+                                                const Icon(Icons.live_tv),
+                                          )
+                                        : const Icon(Icons.live_tv),
+                                    title: Text(c.name,
+                                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    subtitle: c.description.isNotEmpty
+                                        ? Text(c.description,
+                                            maxLines: 1, overflow: TextOverflow.ellipsis)
+                                        : null,
+                                    trailing: c.platform != null
+                                        ? Text(c.platform!,
+                                            style: const TextStyle(
+                                                fontSize: 11, color: Colors.blueGrey))
+                                        : null,
+                                    onTap: () => _selectCandidate(c),
+                                  ),
                                 );
                               },
                             )
@@ -252,21 +266,34 @@ class _LogoSearchDialogState extends State<_LogoSearchDialog> {
                                       itemCount: _iptvResults.length,
                                       itemBuilder: (context, index) {
                                         final candidate = _iptvResults[index];
-                                        return ListTile(
-                                          dense: true,
-                                          leading: Image.network(
-                                            candidate.logoUrl,
-                                            width: 32,
-                                            height: 32,
-                                            errorBuilder: (_, _, _) =>
-                                                const Icon(Icons.image_not_supported),
-                                          ),
-                                          title: Text(candidate.name),
-                                          onTap: () => Navigator.pop(
-                                            context,
-                                            LogoSearchResult(
-                                              logoUrl: candidate.logoUrl,
-                                              name: candidate.name,
+                                        return MouseRegion(
+                                          onEnter: (_) =>
+                                              setState(() => _hoveredIptv = index),
+                                          onExit: (_) =>
+                                              setState(() => _hoveredIptv = null),
+                                          child: ListTile(
+                                            dense: true,
+                                            visualDensity:
+                                                const VisualDensity(vertical: -4),
+                                            tileColor: _hoveredIptv == index
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .surfaceContainerHighest
+                                                : null,
+                                            leading: Image.network(
+                                              candidate.logoUrl,
+                                              width: 32,
+                                              height: 32,
+                                              errorBuilder: (_, _, _) =>
+                                                  const Icon(Icons.image_not_supported),
+                                            ),
+                                            title: Text(candidate.name),
+                                            onTap: () => Navigator.pop(
+                                              context,
+                                              LogoSearchResult(
+                                                logoUrl: candidate.logoUrl,
+                                                name: candidate.name,
+                                              ),
                                             ),
                                           ),
                                         );

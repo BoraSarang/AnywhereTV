@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:anywhere_shared/debug_logger.dart';
 import 'package:anywhere_shared/stream_resolver.dart';
@@ -24,11 +25,14 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
   late final TabController _tabController;
   final _queryController = TextEditingController();
   final _urlController = TextEditingController();
+  final _queryFocus = FocusNode();
+  final _urlFocus = FocusNode();
   String? _apiKey;
   List<AiChannelCandidate> _results = [];
   bool _loading = false;
   String? _error;
   String? _testingIndex;
+  int? _hoveredIndex;
 
   ChannelStore get _store => widget.store;
 
@@ -44,6 +48,8 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
     _tabController.dispose();
     _queryController.dispose();
     _urlController.dispose();
+    _queryFocus.dispose();
+    _urlFocus.dispose();
     PlayerService.instance.stop();
     super.dispose();
   }
@@ -269,7 +275,19 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.digit1, meta: true):
+            () => _tabController.animateTo(0),
+        const SingleActivator(LogicalKeyboardKey.digit2, meta: true):
+            () => _tabController.animateTo(1),
+        const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
+            () => _queryFocus.requestFocus(),
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (Navigator.canPop(context)) Navigator.pop(context);
+        },
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('채널 추천 (AI)'),
         bottom: TabBar(
@@ -283,7 +301,7 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: SizedBox(
               height: 64,
               child: TabBarView(
@@ -291,6 +309,7 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
                 children: [
                   TextField(
                     controller: _queryController,
+                    focusNode: _queryFocus,
                     decoration: InputDecoration(
                       labelText: '원하는 채널 (예: "경제 뉴스 24시간 채널")',
                       border: const OutlineInputBorder(),
@@ -310,6 +329,7 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
                   ),
                   TextField(
                     controller: _urlController,
+                    focusNode: _urlFocus,
                     decoration: InputDecoration(
                       labelText: '사이트 URL (예: https://tv.example.com)',
                       border: const OutlineInputBorder(),
@@ -333,7 +353,7 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
           ),
           if (_error != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
                   Icon(
@@ -377,24 +397,47 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
                     ),
                   )
                 : _results.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'AI 검색으로 채널을 찾아보세요.\n후보를 테스트 재생해 보고 추가할 수 있습니다.\n\n(검색 1회당 소액 비용 발생)',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.travel_explore,
+                                size: 40, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            Text(
+                              'AI 검색으로 채널을 찾아보세요.\n후보를 테스트 재생해 보고 추가할 수 있습니다.\n\n(검색 1회당 소액 비용 발생)',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 11),
+                            ),
+                          ],
                         ),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         itemCount: _results.length,
                         itemBuilder: (context, index) {
                           final c = _results[index];
                           final url = c.channelUrl ?? '';
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Row(
+                          final isHovered = _hoveredIndex == index;
+                          return MouseRegion(
+                            onEnter: (_) =>
+                                setState(() => _hoveredIndex = index),
+                            onExit: (_) => setState(() => _hoveredIndex = null),
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              color: isHovered
+                                  ? Color.alphaBlend(
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.08),
+                                      Theme.of(context).colorScheme.surface,
+                                    )
+                                  : null,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
                                 children: [
                                   if (c.logoUrl != null && c.logoUrl!.isNotEmpty)
                                     Image.network(
@@ -429,7 +472,7 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
-                                                  fontSize: 10,
+                                                  fontSize: 11,
                                                   color: Colors.blueGrey)),
                                       ],
                                     ),
@@ -454,11 +497,12 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
                                 ],
                               ),
                             ),
-                          );
-                        },
-                      ),
-          ),
-          if (PlayerService.instance.controller != null)
+                          ),
+                        );
+                      },
+                    ),
+        ),
+        if (PlayerService.instance.controller != null)
             SizedBox(
               height: 180,
               child: ClipRRect(
@@ -467,6 +511,7 @@ class _AiChannelSearchScreenState extends State<AiChannelSearchScreen>
               ),
             ),
         ],
+      ),
       ),
     );
   }
