@@ -1,8 +1,19 @@
 # 어디서나 TV — 작업 추적 (TODO)
 
-> 최종 업데이트: 2026-08-15
-> 현재 버전: v2.3.0 — Channel Manager 고도화 완료
-> 상세 제안: `docs/plans/PLAN_v2.0_proposal.md`, `docs/plans/PLAN_v2.3_channel_manager.md`
+> 최종 업데이트: 2026-08-18
+> 현재 버전: v2.4.0 — AI 채널 검색/추천 + 브랜드 교체
+> 상세 제안: `docs/plans/PLAN_v2.0_proposal.md`, `docs/plans/PLAN_v2.3_channel_manager.md`, `docs/plans/PLAN_v2.4_channel_manager.md`
+
+## v2.4 — AI 채널 검색/추천 + 브랜드 교체
+
+| T-번호 | 작업 | 상태 | 예상 시간 |
+|--------|------|------|----------|
+| T-128 | AI 로고/채널명 검색 (Gemini web search + 유튜브 파싱 폴백) | ✅ 완료 | 3h |
+| T-129 | AI 채널 추천 화면 (자연어 검색) | ✅ 완료 | 2h |
+| T-130 | AI 채널 추천 화면 (사이트 URL 조사) | ✅ 완료 | 1.5h |
+| T-131 | 소스 타입 dash/audio 확장 | ✅ 완료 | 1h |
+| T-132 | v2.4 실사용 테스트 (TC-MAN-012~015) | 🔄 진행 중 | 1h |
+| T-133 | 브랜드 ID okstart → com.borasarang 전면 교체 (소스/히스토리/데이터 이전) | ✅ 완료 | 2h |
 
 ## v2.3 — Channel Manager 고도화 (전체 완료)
 
