@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:anywhere_shared/debug_logger.dart';
 
 class AiAssistantService {
-  static const List<String> _models = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+  static const List<String> models = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
   static final DebugLogger _log = DebugLogger.instance;
 
   static Future<String?> generateChannelsJson({
@@ -31,7 +31,7 @@ $instruction
 ''';
 
     _log.apiCall('AI', 'POST', 'generateContent');
-    for (final model in _models) {
+    for (final model in models) {
       final url =
           'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
       final body = jsonEncode({

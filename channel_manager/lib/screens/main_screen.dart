@@ -21,6 +21,7 @@ import 'test_play_screen.dart';
 import 'health_report_screen.dart';
 import 'm3u_import_screen.dart';
 import 'ai_assistant_screen.dart';
+import 'ai_channel_search_screen.dart';
 import '../services/m3u_service.dart';
 import '../services/logo_cache_service.dart';
 
@@ -235,6 +236,16 @@ class _MainScreenState extends State<MainScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => AiAssistantScreen(store: _store),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.travel_explore),
+                tooltip: '채널 추천 (AI 검색)',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AiChannelSearchScreen(store: _store),
                   ),
                 ),
               ),

@@ -19,7 +19,7 @@ DO_CLEAN=false
 for arg in "$@"; do
   case $arg in
     debug|release) MODE="$arg" ;;
-    macos|ios|android|web|all) PLATFORM="$arg" ;;
+    macos|ios|android|web|cm|all) PLATFORM="$arg" ;;
     clean) DO_CLEAN=true ;;
     --device=*) DEVICE="${arg#*=}" ;;
     -h|--help)
@@ -91,6 +91,18 @@ copy_to_dist() {
 }
 
 FLUTTER_DIR="$(cd "$(dirname "$0")/anywhere_tv" && pwd)"
+
+if [ "$PLATFORM" = "cm" ]; then
+  CM_DIR="$(cd "$(dirname "$0")/channel_manager" && pwd)"
+  if [ ! -f "$CM_DIR/scripts/build-macos.sh" ]; then
+    error "No script: $CM_DIR/scripts/build-macos.sh"
+    exit 1
+  fi
+  log "▶ channel_manager $MODE build"
+  bash "$CM_DIR/scripts/build-macos.sh" "$MODE"
+  log "Done: cm $MODE"
+  exit 0
+fi
 
 if [ "$PLATFORM" = "all" ]; then
   for p in macos ios android web; do

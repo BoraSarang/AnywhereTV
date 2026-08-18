@@ -88,6 +88,8 @@ class M3uService {
       }
       return 'youtube';
     }
+    if (url.contains('.mpd')) return 'dash';
+    if (RegExp(r'\.(mp3|aac|ogg|m4a)(\?|$)').hasMatch(url)) return 'audio';
     return 'hls';
   }
 

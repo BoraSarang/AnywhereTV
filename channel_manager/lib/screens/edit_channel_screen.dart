@@ -22,6 +22,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
   late final TextEditingController _youtubeVideoIdController;
   late String _selectedCategory;
   late String _sourceType;
+  String? _aiChannelId;
 
   @override
   void initState() {
@@ -81,7 +82,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
       backupStreamUrl: _backupStreamUrlController.text.trim().isEmpty
           ? null
           : _backupStreamUrlController.text.trim(),
-      youtubeChannelId: widget.channel.youtubeChannelId,
+      youtubeChannelId: _aiChannelId ?? widget.channel.youtubeChannelId,
       youtubeVideoId: videoId,
       youtubeHandle: handle,
       category: _selectedCategory,
@@ -139,7 +140,16 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                     }
                     final result = await showLogoSearchDialog(context, name);
                     if (result != null && mounted) {
-                      setState(() => _logoUrlController.text = result);
+                      setState(() {
+                        _logoUrlController.text = result.logoUrl;
+                        if (result.name != null && result.name!.isNotEmpty) {
+                          _nameController.text = result.name!;
+                        }
+                        if (result.handle != null && result.handle!.isNotEmpty) {
+                          _youtubeHandleController.text = result.handle!;
+                        }
+                        _aiChannelId = result.channelId;
+                      });
                     }
                   },
                 ),
@@ -148,7 +158,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _sourceType,
-              items: ['hls', 'youtube_live', 'youtube', 'youtube_handle']
+              items: ['hls', 'dash', 'audio', 'youtube_live', 'youtube', 'youtube_handle']
                   .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                   .toList(),
               onChanged: (v) => setState(() => _sourceType = v!),

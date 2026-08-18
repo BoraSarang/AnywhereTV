@@ -29,6 +29,7 @@ class _AddChannelScreenState extends State<AddChannelScreen> {
   String? _resolvedTitle;
   String? _youtubeHandle;
   String? _youtubeVideoId;
+  String? _youtubeChannelId;
   bool _resolving = false;
   String? _error;
   bool _playing = false;
@@ -67,7 +68,8 @@ class _AddChannelScreenState extends State<AddChannelScreen> {
       }
       return 'youtube';
     }
-    if (url.contains('.m3u8')) return 'hls';
+    if (url.contains('.mpd')) return 'dash';
+    if (RegExp(r'\.(mp3|aac|ogg|m4a)(\?|$)').hasMatch(url)) return 'audio';
     return 'hls';
   }
 
@@ -251,7 +253,10 @@ class _AddChannelScreenState extends State<AddChannelScreen> {
       id: id,
       name: name,
       logoUrl: _logoUrlController.text.trim(),
-      streamUrl: _sourceType == 'hls' ? _resolvedUrl : null,
+      streamUrl: (_sourceType == 'hls' || _sourceType == 'dash' || _sourceType == 'audio')
+          ? _resolvedUrl
+          : null,
+      youtubeChannelId: _youtubeChannelId,
       youtubeVideoId: _youtubeVideoId,
       youtubeHandle: _youtubeHandle,
       category: _selectedCategory!,
@@ -353,7 +358,21 @@ class _AddChannelScreenState extends State<AddChannelScreen> {
                     }
                     final result = await showLogoSearchDialog(context, name);
                     if (result != null && mounted) {
-                      setState(() => _logoUrlController.text = result);
+                      setState(() {
+                        _logoUrlController.text = result.logoUrl;
+                        if (result.name != null && result.name!.isNotEmpty) {
+                          _nameController.text = result.name!;
+                          _idController.text = _autoId(result.name!);
+                        }
+                        if (result.handle != null && result.handle!.isNotEmpty) {
+                          _youtubeHandle = result.handle;
+                          _youtubeChannelId = result.channelId;
+                          _sourceType = 'youtube_handle';
+                          _urlController.text =
+                              'https://www.youtube.com/${result.handle}';
+                          _resolvedUrl = null;
+                        }
+                      });
                     }
                   },
                 ),
