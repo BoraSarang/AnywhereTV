@@ -1,5 +1,27 @@
 # 변경 이력 (CHANGELOG)
 
+## v2.4.0 (2026-08-18) — AI 채널 검색/추천 + 브랜드 교체
+
+> 계획: `docs/plans/PLAN_v2.4_channel_manager.md`
+
+### feat [channel_manager][macos]
+- T-128 AI 로고/채널명 검색: `AiSearchService` — Gemini web search(`google_search` 도구) 기반 로고/채널명 자동 검색. 429/403(무료 티어) 시 **유튜브 검색 결과 페이지 파싱으로 자동 폴백**(`searchYoutube` → `parseYoutubeResults`, ytInitialData 파싱, 후보 10개) — 무료 티어에서도 동작
+- T-129 AI 채널 추천(자연어 검색): 자연어로 채널 추천 화면 — `AiAssistantService.models` 단일 소스 공유(어시스턴트/검색/추천 모두 `['gemini-3.5-flash','gemini-3.1-flash-lite']`)
+- T-130 AI 채널 추천(사이트 URL 조사): URL 기반 채널 조사 탭
+- T-131 소스 타입 확장: dash/audio 추가 (기존 HLS/YouTube)
+- T-133 브랜드 교체: 번들 ID `com.borasarang.*` 전면 적용 (Android 패키지 이동, MethodChannel, git 히스토리 재작성)
+- T-134 macOS 디자인 표준: 채널 추천 화면 단축키(⌘1/⌘2 탭, ⌘F 검색 포커스, Esc 닫기)·패딩 16·카드 호버·스페이싱, 로고 다이얼로그 480×440·밀도 개선. `withOpacity`→`withValues(alpha:)`, `surfaceVariant`→`surfaceContainerHighest` deprecation 정리
+
+### model
+- Channel 소스 타입: dash/audio 지원 확장
+
+### test
+- `YoutubeMetaService.extractInitialData` public rename + AiSearchService 유튜브 검색 파싱 테스트 — 총 14건 통과
+
+### docs
+- `docs/plans/PLAN_v2.4_channel_manager.md` 신규
+- `error_message_ko.json`: E-MAN-AI-1005(Gemini 할당량), E-MAN-URL-1005 안내 추가
+
 ## v2.3.0 (2026-08-15) — Channel Manager 고도화 (P0~P2)
 
 > 계획: `docs/plans/PLAN_v2.3_channel_manager.md`

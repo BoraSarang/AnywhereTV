@@ -1,30 +1,27 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. 1.0.0)'
+        description: 'Release version (e.g. 2.4.0)'
         required: true
         type: string
-      tag:
-        description: 'Git tag (e.g. v1.0.0)'
-        required: true
-        type: string
-      changelog:
-        description: 'Release notes'
-        required: false
-        type: string
-        default: ''
 
 concurrency:
-  group: release-${{ inputs.version }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
+
+env:
+  VERSION: ${{ github.event.inputs.version || github.ref_name }}
 
 jobs:
   build-android:
     name: Build Android APK
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: anywhere_tv
@@ -36,8 +33,11 @@ jobs:
           flutter-version: '3.44.6'
           channel: 'stable'
 
-      - name: Decode keystore
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/upload-keystore.jks
+      - name: Decode keystore (if present)
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/upload-keystore.jks
+          fi
 
       - name: Build APK
         run: flutter build apk --release
@@ -96,6 +96,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Normalize version tag
+        id: ver
+        run: |
+          v="${VERSION}"
+          case "$v" in
+            v*) tag="$v" ;;
+            *)  tag="v$v" ;;
+          esac
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "num=${tag#v}" >> "$GITHUB_OUTPUT"
+
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
@@ -114,18 +125,18 @@ jobs:
       - name: Rename APK
         run: |
           apk=$(find release-artifacts -name "*.apk" | head -1)
-          mv "$apk" "release-artifacts/AnywhereTV-${{ inputs.version }}.apk"
+          mv "$apk" "release-artifacts/AnywhereTV-${{ steps.ver.outputs.num }}.apk"
 
       - name: Rename ZIP
         run: |
           zip=$(find release-artifacts -name "*.zip" | head -1)
-          mv "$zip" "release-artifacts/AnywhereTV-${{ inputs.version }}-macos.zip"
+          mv "$zip" "release-artifacts/AnywhereTV-${{ steps.ver.outputs.num }}-macos.zip"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag }}
-          name: AnywhereTV v${{ inputs.version }}
-          body: ${{ inputs.changelog }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: AnywhereTV ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
           files: release-artifacts/*
           fail_on_unmatched_files: true

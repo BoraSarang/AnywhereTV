@@ -41,3 +41,6 @@ Android SDK
 # packages/shared
 packages/shared/.dart_tool/
 packages/shared/build/
+
+# 스크린샷 (로컬 산출물 — 커밋 제외)
+docs/screenshots/
