@@ -124,7 +124,7 @@
 📁 channel_manager/    — AI 채널 편집 전용 macOS 앱 (Flutter)
 📁 packages/shared/    — 리졸버/로거 공유 패키지
 📁 docs/               — PRD · DESIGN · PLAN · TODO · 랜딩 페이지
-📁 .github/workflows/  — CI/CD (릴리스 · Pages · 리졸버 헬스체크)
+📁 .github/workflows/  — CI/CD (릴리스 · Pages 자동 배포)
 ```
 
 ---
@@ -140,7 +140,7 @@
 | EPG/저장 | XMLTV(Drift SQLite 캐시) · Gist JSON · shared_preferences |
 | 채널 데이터 | GitHub Gist JSON (버전 + 변경 이력 포함) |
 | 백그라운드 | flutter_background_service (Android foreground) |
-| CI/CD | GitHub Actions — 태그 기반 자동 빌드 + Release · Pages · 헬스체크 cron |
+| CI/CD | GitHub Actions — 태그 기반 자동 빌드 + Release · Pages 자동 배포 |
 
 ---
 

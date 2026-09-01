@@ -16,7 +16,7 @@
 | 백그라운드 | flutter_background_service (Android foreground notification) |
 | TTS | flutter_tts 4.2.5 (어르신 친화 음성 안내) |
 | AI (ChannelManager) | Gemini HTTP(vertex/ai platform generateContent) — `AiAssistantService.models` 단일 소스 |
-| CI/CD | GitHub Actions — 태그 push 자동 릴리스 (Android APK + macOS ZIP), Pages 배포, 리졸버 헬스체크 cron |
+| CI/CD | GitHub Actions — 태그 push 자동 릴리스 (Android APK + macOS ZIP), Pages 자동 배포 |
 
 ### 공유 패키지 — `packages/shared`
 타입/상수만 공유(로직 금지): `stream_resolver.dart`(리졸버 공통), `stream_resolution_result.dart`, `debug_logger.dart`(DebugLogger), `anywhere_shared.dart`.
